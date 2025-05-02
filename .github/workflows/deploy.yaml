@@ -50,7 +50,7 @@ jobs:
       # --- Terraform Backend Setup ---
       - name: Ensure Terraform State Bucket Exists
         run: |
-          BUCKET_NAME="${{ env.TF_STATE_BUCKET_NAME }}"
+          BUCKET_NAME="${{ env.TF_STATE_BUCKET }}"
           PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
           REGION="${{ env.GCP_REGION }}"
 
@@ -73,6 +73,6 @@ jobs:
             fi
           fi
         env: # Re-define env for clarity within the step script, although inherited
-          TF_STATE_BUCKET_NAME: ${{ env.TF_STATE_BUCKET_NAME }}
+          TF_STATE_BUCKET_NAME: ${{ env.TF_STATE_BUCKET }}
           GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
           GCP_REGION: ${{ env.GCP_REGION }}
