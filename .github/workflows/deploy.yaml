@@ -1,0 +1,43 @@
+name: Deploy test
+
+on: # This workflow is triggered on push to the main branch
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - qa
+      - dev
+      - master
+    paths:
+      - infra/**
+      - frontend/**
+      - backend/**
+      - .github/workflows/**
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  trigger_cloud_build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WIF_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Trigger Cloud Build
+        run: |
+          gcloud builds submit \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --config=infra/cloudbuild.yaml \
+            --substitutions=_GITHUB_SHA="$GITHUB_SHA",_BRANCH_NAME="$GITHUB_REF_NAME"
