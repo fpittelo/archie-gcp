@@ -21,19 +21,20 @@ permissions:
 jobs:
   trigger_cloud_build:
     runs-on: ubuntu-latest
+    env:
+      GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: authenticate to Google Cloud
         uses: google-github-actions/auth@v2
+        id: auth
         with:
-          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-          # The following lines are not needed, as the action handles this internally.
-          # env:
-          #   GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
-          #   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
  
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
