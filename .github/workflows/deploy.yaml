@@ -16,17 +16,23 @@ on: # This workflow is triggered on push to the main branch
 
 permissions:
   id-token: write
-  contents: write
+  contents: read
 
 jobs:
-  trigger_cloud_build:
-    name: Trigger Cloud Build
+  deploy:
+    name: Deploy Backend
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+
+      # Terraform variables
+      TF_STATE_BUCKET: terraform-state${{ secrets.GCP_PROJECT_NUMBER }}
+      ENVIRONMENT: ${{ github.ref_name }}
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -41,9 +47,32 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      - name: Trigger Cloud Build
+      # --- Terraform Backend Setup ---
+      - name: Ensure Terraform State Bucket Exists
         run: |
-          gcloud builds submit \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --config=infra/cloudbuild.yaml \
-            --substitutions=_GITHUB_SHA="$GITHUB_SHA",_BRANCH_NAME="$GITHUB_REF_NAME"
+          BUCKET_NAME="${{ env.TF_STATE_BUCKET_NAME }}"
+          PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
+          REGION="${{ env.GCP_REGION }}"
+
+          # Check if the bucket exists
+          if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project="${PROJECT_ID}" > /dev/null 2>&1; then
+            echo "Terraform state bucket gs://${BUCKET_NAME} already exists."
+          else
+            echo "Terraform state bucket gs://${BUCKET_NAME} does not exist. Creating..."
+            # Create the bucket with uniform bucket-level access for security
+            gcloud storage buckets create "gs://${BUCKET_NAME}" \
+              --project="${PROJECT_ID}" \
+              --location="${REGION}" \
+              --uniform-bucket-level-access
+
+            if [ $? -eq 0 ]; then
+              echo "Bucket gs://${BUCKET_NAME} created successfully."
+            else
+              echo "Error creating bucket gs://${BUCKET_NAME}."
+              exit 1
+            fi
+          fi
+        env: # Re-define env for clarity within the step script, although inherited
+          TF_STATE_BUCKET_NAME: ${{ env.TF_STATE_BUCKET_NAME }}
+          GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.GCP_REGION }}
