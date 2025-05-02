@@ -20,6 +20,8 @@ permissions:
 
 jobs:
   trigger_cloud_build:
+    name: Trigger Cloud Build
+    environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
