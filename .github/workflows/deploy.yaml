@@ -1,4 +1,4 @@
-name: Deploy test
+name: Deploy Infra
 
 on: # This workflow is triggered on push to the main branch
   workflow_dispatch:

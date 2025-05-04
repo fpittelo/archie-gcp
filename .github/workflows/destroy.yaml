@@ -1,13 +1,12 @@
-name: Destroy Infrastructure
+name: Destroy Infra
 
 on: # This workflow is triggered on push to the main branch
   workflow_dispatch:
   push:
     branches:
-      - main
-      - qa
       - dev
-      - master
+      - qa
+      - main
     paths:
       - infra/**
       - frontend/**
