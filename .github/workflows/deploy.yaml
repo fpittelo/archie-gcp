@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+      # The PROVIDER MUST BE SET TO "DEFAULT AUDIENCE"
+      # The value of GCP_WIF_PROVIDER comes from the Wokload Identity Pool page, field IAM Principal from "project...."
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
