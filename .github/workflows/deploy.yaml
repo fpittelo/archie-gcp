@@ -1,0 +1,80 @@
+name: Deploy test
+
+on: # This workflow is triggered on push to the main branch
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - qa
+      - dev
+      - master
+    paths:
+      - infra/**
+      - frontend/**
+      - backend/**
+      - .github/workflows/**
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Backend
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+      # The PROVIDER MUST BE SET TO "DEFAULT AUDIENCE"
+      # The value of GCP_WIF_PROVIDER comes from the Wokload Identity Pool page, field IAM Principal from "project...."
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+
+      # Terraform variables
+      TF_STATE_BUCKET: terraform-state${{ secrets.GCP_PROJECT_NUMBER }}
+      ENVIRONMENT: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+ 
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      # --- Terraform Backend Setup ---
+      - name: Ensure Terraform State Bucket Exists
+        run: |
+          BUCKET_NAME="${{ env.TF_STATE_BUCKET }}"
+          PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
+          REGION="${{ env.GCP_REGION }}"
+
+          # Check if the bucket exists
+          if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project="${PROJECT_ID}" > /dev/null 2>&1; then
+            echo "Terraform state bucket gs://${BUCKET_NAME} already exists."
+          else
+            echo "Terraform state bucket gs://${BUCKET_NAME} does not exist. Creating..."
+            # Create the bucket with uniform bucket-level access for security
+            gcloud storage buckets create "gs://${BUCKET_NAME}" \
+              --project="${PROJECT_ID}" \
+              --location="${REGION}" \
+              --uniform-bucket-level-access
+
+            if [ $? -eq 0 ]; then
+              echo "Bucket gs://${BUCKET_NAME} created successfully."
+            else
+              echo "Error creating bucket gs://${BUCKET_NAME}."
+              exit 1
+            fi
+          fi
+        env: # Re-define env for clarity within the step script, although inherited
+          TF_STATE_BUCKET_NAME: ${{ env.TF_STATE_BUCKET }}
+          GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.GCP_REGION }}
