@@ -9,3 +9,18 @@ variable "location" {
   description = "Resource location"
   type        = string
 }
+
+variable "zone_a" {
+  description = "Resource location"
+  type        = string
+}
+
+variable "zone_b" {
+  description = "Resource location"
+  type        = string
+}
+
+variable "zone_C" {
+  description = "Resource location"
+  type        = string
+}

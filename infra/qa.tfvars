@@ -1,0 +1,5 @@
+project_id          = "archie-458607"
+location            = "europe-west6"
+zone_a              = "europe-west6-a"
+zone_b              = "europe-west6-b"
+zone_c              = "europe-west6-c"
