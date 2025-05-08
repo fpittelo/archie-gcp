@@ -70,6 +70,14 @@ jobs:
         run: terraform workspace select ${{ env.ENVIRONMENT }}
         working-directory: infra/
 
+      - name: Revoke Cloud Functions Admin Role
+        run: |
+          gcloud projects remove-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/cloudfunctions.admin"
+        working-directory: infra/
+        # This step revokes the permissions before Terraform Destroy
+
       - name: Terraform Plan (Destroy)
         run: terraform plan -destroy
         working-directory: infra/

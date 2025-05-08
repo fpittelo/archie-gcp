@@ -120,6 +120,15 @@ jobs:
         run: terraform validate
         working-directory: infra/
 
+      - name: Grant Cloud Functions Admin Role
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/cloudfunctions.admin"
+        working-directory: infra/
+        # This step grants the necessary permissions before Terraform Apply
+
+
       - name: Terraform Apply
         run: terraform apply -auto-approve
         working-directory: infra/ # Assuming your Terraform configuration is in the infra directory
