@@ -18,6 +18,7 @@ permissions:
   contents: read
 
 jobs:
+  
   deploy:
     name: Deploy Backend
     environment: ${{ github.ref_name }}
@@ -35,6 +36,7 @@ jobs:
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -47,6 +49,12 @@ jobs:
  
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'grant permission to service account'
+        run: |
+          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/cloudfunctions.admin"
 
       # --- Terraform Backend Setup ---
       - name: Ensure Terraform State Bucket Exists
@@ -119,15 +127,6 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
         working-directory: infra/
-
-      - name: Grant Cloud Functions Admin Role
-        run: |
-          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/cloudfunctions.admin"
-        working-directory: infra/
-        # This step grants the necessary permissions before Terraform Apply
-
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
