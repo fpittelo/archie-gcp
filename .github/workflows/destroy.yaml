@@ -38,6 +38,12 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
+      - name: Revoke IAM Policy Admin Role
+        run: |
+          gcloud projects remove-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/resourcemanager.policyAdmin"
+
       - name: Revoke Cloud Functions Admin Role
         run: |
           gcloud projects remove-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
