@@ -115,8 +115,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        run: terraform init
-        working-directory: infra/
+        run: |
+          terraform init \
+            -backend-config=bucket=${{ env.TF_STATE_BUCKET }} \
+            -backend-config="prefix=backend/terraform/state"
 
       - name: Terraform Validate
         run: terraform validate
