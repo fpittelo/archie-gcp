@@ -28,3 +28,11 @@ variable "zone_C" {
 variable "tf_state_bucket" {
   type = string
 }
+
+variable "storage_bucket" {
+  type = string
+}
+
+variable "cloudfunction" {
+  type = string
+}

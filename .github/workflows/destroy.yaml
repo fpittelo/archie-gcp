@@ -1,17 +1,9 @@
 name: Destroy Infra
 
-on: # This workflow is triggered on push to the main branch
+on:
   workflow_dispatch:
-  push:
-    branches:
-      - dev
-      - qa
-      - main
-    paths:
-      - infra/**
-      - frontend/**
-      - backend/**
-      - .github/workflows/**
+
+
 
 permissions:
   id-token: write
