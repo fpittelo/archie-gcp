@@ -87,4 +87,35 @@ jobs:
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
-      GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF }}
+      GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+
+      # Terraform variables
+      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
+      ENVIRONMENT: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: infra/ # Assuming your Terraform configuration is in the infra directory
