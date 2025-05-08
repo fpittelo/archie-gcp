@@ -9,19 +9,12 @@ terraform {
       version = "~> 2.0"
     }
   }
-
   backend "gcs" {
     bucket = var.tf_state_bucket
     prefix = "terraform-state"
   }
 }
-
 provider "google" {
-  project = var.project_id
-  region  = var.location
-}
-
-provider "google-beta" {
   project = var.project_id
   region  = var.location
 }
