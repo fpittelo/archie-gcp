@@ -50,12 +50,6 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      - name: 'Grant Cloud Functions Admin Permission'
-        run: |
-          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/cloudfunctions.admin"
-
       # --- Terraform Backend Setup ---
       - name: Ensure Terraform State Bucket Exists
         run: |
