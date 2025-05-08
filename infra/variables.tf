@@ -24,3 +24,8 @@ variable "zone_C" {
   description = "Resource location"
   type        = string
 }
+
+variable "tf_state_bucket" {
+  description = "Backend bucket for Terraform state"
+  type        = string
+}

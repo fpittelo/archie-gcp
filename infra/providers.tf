@@ -15,8 +15,8 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "iaac-gcp-data-mgt-terraform"
-    prefix = "backend/state"
+    bucket = var.tf_state_bucket
+    prefix = "terraform/state"
   }
 }
 
@@ -28,4 +28,8 @@ provider "google" {
 provider "google-beta" {
   project = var.project_id
   region  = var.location
+}
+
+variable "tf_state_bucket" {
+  type = string
 }
