@@ -29,7 +29,3 @@ provider "google-beta" {
   project = var.project_id
   region  = var.location
 }
-
-variable "tf_state_bucket" {
-  type = string
-}
