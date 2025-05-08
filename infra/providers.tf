@@ -10,11 +10,11 @@ terraform {
     }
   }
   backend "gcs" {
-    bucket = var.tf_state_bucket
+    bucket = "terraform-state-qa-851493899554"
     prefix = "terraform-state"
   }
 }
 provider "google" {
-  project = var.project_id
-  region  = var.location
+  project = "archie-458607"
+  region  = "europe-west6"
 }
