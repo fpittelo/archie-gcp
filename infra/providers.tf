@@ -2,11 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 6.20.0"
-    }
-    google-beta = {
-      source  = "hashicorp/google-beta"
-      version = "~> 6.20.0"
+      version = "~> 6.32.0"
     }
     http = {
       source  = "terraform-aws-modules/http"
@@ -16,7 +12,7 @@ terraform {
 
   backend "gcs" {
     bucket = var.tf_state_bucket
-    prefix = "terraform/state"
+    prefix = "terraform-state"
   }
 }
 
