@@ -29,7 +29,7 @@ jobs:
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
       # Terraform variables
-      TF_STATE_BUCKET: terraform-state${{ secrets.GCP_PROJECT_NUMBER }}
+      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
