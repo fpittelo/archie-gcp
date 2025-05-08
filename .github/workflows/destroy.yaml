@@ -72,25 +72,25 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}"
-        working-directory: infra/terraform
+        working-directory: infra/
 
       - name: Terraform Select Workspace
         run: terraform workspace select ${{ env.ENVIRONMENT }}
-        working-directory: infra/terraform
+        working-directory: infra/
 
       - name: Terraform Plan (Destroy)
         run: terraform plan -destroy
-        working-directory: infra/terraform
+        working-directory: infra/
 
       - name: Terraform Apply (Destroy)
         run: terraform apply -destroy -auto-approve
-        working-directory: infra/terraform
+        working-directory: infra/
 
       - name: Terraform Workspace Select Default
         run: terraform workspace select default
-        working-directory: infra/terraform
+        working-directory: infra/
 
       - name: Terraform Workspace Delete
         run: terraform workspace delete ${{ env.ENVIRONMENT }}
-        working-directory: infra/terraform
+        working-directory: infra/
         continue-on-error: true
