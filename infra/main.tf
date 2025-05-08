@@ -14,12 +14,14 @@ data "archive_file" "default" {
 
 #### Create Storage bucked object ####
 resource "google_storage_bucket_object" "function" {
+  depends_on = [ google_storage_bucket.archiemcp_bucket ]
   name   = "function-source.zip"
   bucket = var.storage_bucket
   source = data.archive_file.default.output_path
 }
 
 resource "google_cloudfunctions_function" "archiefunct" {
+  depends_on = [ google_storage_bucket.archiemcp_bucket ]
   name        = var.cloudfunction
   project     = var.project_id
   description = "A function to process Pub/Sub events"
