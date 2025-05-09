@@ -118,15 +118,13 @@ jobs:
         run: terraform init
         working-directory: infra/
 
-
       - name: Terraform Validate
         run: terraform validate
         working-directory: infra/
 
       - name: Terraform Apply
+        working-directory: infra/
         run: |
           terraform apply -auto-approve \
             -var="project=${{ env.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
-            -var="environment=${{ env.ENVIRONMENT }}" \"
-        working-directory: infra/
