@@ -10,7 +10,7 @@ terraform {
     }
   }
   backend "gcs" {
-    bucket = "terraform-state-qa-851493899554"
+    bucket = "terraform-state-851493899554"
     prefix = "terraform-state"
   }
 }
