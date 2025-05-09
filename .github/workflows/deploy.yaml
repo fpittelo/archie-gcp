@@ -24,7 +24,7 @@ permissions:
 jobs:
 
   prepare_backend: # Renamed job for clarity
-    name: Prepare Terraform Backend Bucket
+    name: Deploy Backend
     # Link this job to the specific environment corresponding to the branch name
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
@@ -99,7 +99,7 @@ jobs:
           fi
 
   deploy_infra: # Renamed job for clarity
-    name: Deploy Terraform Infrastructure
+    name: Deploy Infrastructure
     # This job depends on the backend bucket being prepared
     needs: [prepare_backend]
     # Link this job to the specific environment corresponding to the branch name
