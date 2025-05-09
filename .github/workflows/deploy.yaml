@@ -87,8 +87,8 @@ jobs:
             # Using the shell variables defined above
             gcloud storage buckets create "gs://${BUCKET_NAME}" \
               --project="${PROJECT_ID}" \
-              --location="${REGION}" \ # Removed the comment from this line
-              --uniform-bucket-level-access # This line should follow the backslash directly
+              --location="${REGION}" \
+              --uniform-bucket-level-access
 
             if [ $? -eq 0 ]; then
               echo "Bucket gs://${BUCKET_NAME} created successfully."
@@ -97,8 +97,6 @@ jobs:
               exit 1
             fi
           fi
-        # Removed the redundant nested env block
-
 
   deploy_infra: # Renamed job for clarity
     name: Deploy Terraform Infrastructure
