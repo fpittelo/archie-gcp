@@ -1,0 +1,7 @@
+environment         = "qa"
+project_id          = "archie-458607"
+location            = "europe-west6"
+region              = "europe-west6"
+tf_state_bucket     = "terraform-state-qa-851493899554"
+storage_bucket      = "archiemcp-qa"
+cloudfunction       = "archiefunct-qa"
