@@ -161,5 +161,6 @@ jobs:
             -var="project_id=${{ env.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
-            -var="environment=${{ env.ENVIRONMENT }}"
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var-file="${{ github.ref_name }}.tfvars"
   
