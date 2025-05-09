@@ -64,5 +64,5 @@ jobs:
       - name: Destroy Terraform State Bucket
         run: |
           echo "Destroying Terraform state bucket gs://${{ env.TF_STATE_BUCKET }}..."
-          gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --force
+          gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --quiet
         continue-on-error: true # Allow the workflow to continue even if this step fails
