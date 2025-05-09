@@ -70,7 +70,7 @@ jobs:
           # Accessing vars.GCP_REGION_CH directly here as env.GCP_REGION was unstable in previous logs for this step
           REGION="${{ vars.GCP_REGION_CH }}"
 
-          # Add debugging output to check variable values (Recommended for troubleshooting)
+          # Debugging output to check variable values (Recommended for troubleshooting)
           echo "--- Debugging Bucket Creation Variables ---"
           echo "Bucket Name: ${BUCKET_NAME}"
           echo "Project ID: ${PROJECT_ID}"
@@ -87,17 +87,17 @@ jobs:
             # Using the shell variables defined above
             gcloud storage buckets create "gs://${BUCKET_NAME}" \
               --project="${PROJECT_ID}" \
-              --location="${REGION}" \ # <--- Using the shell variable for dynamic location
-              --uniform-bucket-level-access
+              --location="${REGION}" \ # Removed the comment from this line
+              --uniform-bucket-level-access # This line should follow the backslash directly
 
             if [ $? -eq 0 ]; then
               echo "Bucket gs://${BUCKET_NAME} created successfully."
             else
               echo "Error creating bucket gs://${BUCKET_NAME}."
-              exit 1 # Exit the step if bucket creation fails
+              exit 1
             fi
           fi
-        # Removed the redundant nested env block here
+        # Removed the redundant nested env block
 
 
   deploy_infra: # Renamed job for clarity
