@@ -162,5 +162,4 @@ jobs:
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
             -var="environment=${{ env.ENVIRONMENT }}"
-        # IMPORTANT: Ensure your Terraform code in infra/ has input variables
-        # named 'project', 'region', 'location', and 'environment' if you are passing them.
+  
