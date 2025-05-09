@@ -18,6 +18,15 @@ variable "storage_bucket" {
   type = string
 }
 
+variable "region" {
+  description = "The GCP region"
+  type        = string
+}
+
 variable "environment" {
  type = string 
+}
+
+variable "cloudfunction" {
+  type = string
 }
