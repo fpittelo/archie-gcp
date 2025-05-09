@@ -1,100 +1,70 @@
-name: Destroy Infra
+name: Destroy Infrastructure
 
 on:
-  workflow_dispatch:
-
-
+  workflow_dispatch: # Allows manual triggering
+    inputs:
+      environment:
+        description: 'Environment to destroy (qa, main, dev)'
+        required: true
+        type: choice
+        options:
+          - qa
+          - main
+          - dev
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  # These environment variables will be available to all jobs
+  GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+  GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION_CH }}
+  TF_STATE_BUCKET: terraform-state-${{ github.event.inputs.environment }}-${{ secrets.GCP_PROJECT_NUMBER }}
+  ENVIRONMENT: ${{ github.event.inputs.environment }}
+
 jobs:
   destroy:
-    name: Destroy Backend
-    environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
-    env:
-      GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
-      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION_CH }}
-
-      # Terraform variables
-      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
-      ENVIRONMENT: ${{ github.ref_name }}
-
+    environment: ${{ github.event.inputs.environment }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: authenticate to Google Cloud
+      - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
-        id: auth
         with:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
-      - name: 'Set up Cloud SDK'
+      - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: Revoke IAM Policy Admin Role
-        run: |
-          gcloud projects remove-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/resourcemanager.policyAdmin"
-
-      - name: Revoke Cloud Functions Admin Role
-        run: |
-          gcloud projects remove-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/cloudfunctions.admin"
-
-      # --- Terraform Backend Setup ---
-      - name: Ensure Terraform State Bucket Exists
-        run: |
-          BUCKET_NAME="${{ env.TF_STATE_BUCKET }}"
-          PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
-          REGION="${{ env.GCP_REGION }}"
-
-          # Check if the bucket exists
-          if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project="${PROJECT_ID}" > /dev/null 2>&1; then
-            echo "Terraform state bucket gs://${BUCKET_NAME} already exists."
-          else
-            echo "Terraform state bucket gs://${BUCKET_NAME} does not exist."
-            exit 0
-          fi
-        env: # Re-define env for clarity within the step script, although inherited
-          TF_STATE_BUCKET_NAME: ${{ env.TF_STATE_BUCKET }}
-          GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
-          GCP_REGION: ${{ env.GCP_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.7
 
       - name: Terraform Init
-        run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}"
-        working-directory: infra/
-
-      - name: Terraform Select Workspace
-        run: terraform workspace select ${{ env.ENVIRONMENT }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+            -backend-config="prefix=terraform-state"
         working-directory: infra/
 
       - name: Terraform Plan (Destroy)
-        run: terraform plan -destroy
+        run: terraform plan -destroy -var="project_id=${{ env.GCP_PROJECT_ID }}" -var="region=${{ env.GCP_REGION }}" -var="location=${{ env.GCP_REGION }}" -var="environment=${{ env.ENVIRONMENT }}" -var-file="${{ env.ENVIRONMENT }}.tfvars"
         working-directory: infra/
 
-      - name: Terraform Apply (Destroy)
-        run: terraform apply -destroy -auto-approve
+      - name: Terraform Destroy
+        run: |
+          terraform destroy -auto-approve -var="project_id=${{ env.GCP_PROJECT_ID }}" -var="region=${{ env.GCP_REGION }}" -var="location=${{ env.GCP_REGION }}" -var="environment=${{ env.ENVIRONMENT }}" -var-file="${{ env.ENVIRONMENT }}.tfvars"
         working-directory: infra/
 
-      - name: Terraform Workspace Select Default
-        run: terraform workspace select default
-        working-directory: infra/
-
-      - name: Terraform Workspace Delete
-        run: terraform workspace delete ${{ env.ENVIRONMENT }}
-        working-directory: infra/
-        continue-on-error: true
+      # Optional: Destroy the Terraform State Bucket (Uncomment with caution!)
+      # - name: Destroy Terraform State Bucket
+      #   if: ${{ github.event.inputs.destroy_state_bucket == true }}
+      #   run: |
+      #     echo "Destroying Terraform state bucket gs://${{ env.TF_STATE_BUCKET }}..."
+      #     gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --force
+      #   continue-on-error: true # Allow the workflow to continue even if this step fails
