@@ -1,7 +1,7 @@
 name: Destroy Infrastructure
 
 on:
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
     inputs:
       environment:
         description: 'Environment to destroy (qa, main, dev)'
@@ -22,14 +22,14 @@ env:
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ vars.GCP_REGION_CH }}
-  TF_STATE_BUCKET: terraform-state-${{ github.event.inputs.environment }}-${{ secrets.GCP_PROJECT_NUMBER }}
-  ENVIRONMENT: ${{ github.event.inputs.environment }}
+  TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
+  ENVIRONMENT: ${{ github.ref_name }}
 
 jobs:
   destroy_infra:
     name: Destroy Infra
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
+    environment: ${{ github.ref_name }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -65,11 +65,11 @@ jobs:
   destroy_state_bucket:
     name: Destroy Backend
     runs-on: ubuntu-latest
-    needs: [destroy_infra] # Depends on the destroy_infra job
-    environment: ${{ github.event.inputs.environment }}
+    needs: [destroy_infra]
+    environment: ${{ github.ref_name }}
     steps:
       - name: Delete State Bucket
         run: |
           echo "Destroying Terraform state bucket gs://${{ env.TF_STATE_BUCKET }}..."
           gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --quiet
-        continue-on-error: true # Allow the workflow to continue even if this step fails
+        continue-on-error: true
