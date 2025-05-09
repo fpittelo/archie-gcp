@@ -127,4 +127,4 @@ jobs:
         run: |
           terraform apply -auto-approve \
             -var="project=${{ env.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
+            -var="region=${{ env.GCP_REGION }}"
