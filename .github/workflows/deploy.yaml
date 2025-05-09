@@ -23,7 +23,7 @@ permissions:
 
 jobs:
 
-  prepare_backend: # Renamed job for clarity
+  prepare_backend:
     name: Deploy Backend
     # Link this job to the specific environment corresponding to the branch name
     environment: ${{ github.ref_name }}
