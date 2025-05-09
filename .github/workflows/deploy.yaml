@@ -65,7 +65,7 @@ jobs:
             # Create the bucket with uniform bucket-level access for security
             gcloud storage buckets create "gs://${BUCKET_NAME}" \
               --project="${PROJECT_ID}" \
-              --location="${REGION}" \
+              --location="europe-west6" \
               --uniform-bucket-level-access
 
             if [ $? -eq 0 ]; then
