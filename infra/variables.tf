@@ -17,3 +17,7 @@ variable "tf_state_bucket" {
 variable "storage_bucket" {
   type = string
 }
+
+variable "environment" {
+ type = string 
+}
