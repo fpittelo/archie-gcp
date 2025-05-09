@@ -80,7 +80,7 @@ jobs:
           GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
           GCP_REGION: ${{ env.GCP_REGION }}
 
-#####  Terraform deployment ###
+#####  Terraform deployment ####
 
   service:
     name: Terraform Deployment
@@ -114,13 +114,15 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init  # Move this step up
+      - name: Terraform Init
         run: terraform init
+        working-directory: infra/
 
-      - name: Terraform Validate # Move this step down
+
+      - name: Terraform Validate
         run: terraform validate
         working-directory: infra/
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: infra/ # Assuming your Terraform configuration is in the infra directory
+        working-directory: infra/
