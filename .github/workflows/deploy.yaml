@@ -158,7 +158,7 @@ jobs:
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
-            -var="project=${{ env.GCP_PROJECT_ID }}" \
+            -var="project_id=${{ env.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
             -var="environment=${{ env.ENVIRONMENT }}"
