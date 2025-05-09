@@ -61,10 +61,8 @@ jobs:
           terraform destroy -auto-approve -var="project_id=${{ env.GCP_PROJECT_ID }}" -var="region=${{ env.GCP_REGION }}" -var="location=${{ env.GCP_REGION }}" -var="environment=${{ env.ENVIRONMENT }}" -var-file="${{ env.ENVIRONMENT }}.tfvars"
         working-directory: infra/
 
-      # Optional: Destroy the Terraform State Bucket (Uncomment with caution!)
-      # - name: Destroy Terraform State Bucket
-      #   if: ${{ github.event.inputs.destroy_state_bucket == true }}
-      #   run: |
-      #     echo "Destroying Terraform state bucket gs://${{ env.TF_STATE_BUCKET }}..."
-      #     gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --force
-      #   continue-on-error: true # Allow the workflow to continue even if this step fails
+      - name: Destroy Terraform State Bucket
+        run: |
+          echo "Destroying Terraform state bucket gs://${{ env.TF_STATE_BUCKET }}..."
+          gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --force
+        continue-on-error: true # Allow the workflow to continue even if this step fails
