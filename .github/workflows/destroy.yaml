@@ -26,7 +26,8 @@ env:
   ENVIRONMENT: ${{ github.event.inputs.environment }}
 
 jobs:
-  destroy:
+  destroy_infra:
+    name: Destroy Infra
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     steps:
@@ -61,7 +62,13 @@ jobs:
           terraform destroy -auto-approve -var="project_id=${{ env.GCP_PROJECT_ID }}" -var="region=${{ env.GCP_REGION }}" -var="location=${{ env.GCP_REGION }}" -var="environment=${{ env.ENVIRONMENT }}" -var-file="${{ env.ENVIRONMENT }}.tfvars"
         working-directory: infra/
 
-      - name: Destroy Terraform State Bucket
+  destroy_state_bucket:
+    name: Destroy Backend
+    runs-on: ubuntu-latest
+    needs: [destroy_infra] # Depends on the destroy_infra job
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Delete State Bucket
         run: |
           echo "Destroying Terraform state bucket gs://${{ env.TF_STATE_BUCKET }}..."
           gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --quiet
