@@ -55,7 +55,7 @@ jobs:
         run: |
           BUCKET_NAME="${{ env.TF_STATE_BUCKET }}"
           PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
-          REGION="${{ env.GCP_REGION }}"
+          REGION="${{ env.GCP_REGION_CH }}"
 
           # Check if the bucket exists
           if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project="${PROJECT_ID}" > /dev/null 2>&1; then
@@ -78,7 +78,7 @@ jobs:
         env: # Re-define env for clarity within the step script, although inherited
           TF_STATE_BUCKET_NAME: ${{ env.TF_STATE_BUCKET }}
           GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
-          GCP_REGION: ${{ env.GCP_REGION }}
+          GCP_REGION: ${{ env.GCP_REGION_CH }}
 
 #####  Terraform deployment ####
 
