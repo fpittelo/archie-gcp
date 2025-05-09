@@ -1,38 +1,45 @@
 name: Deploy Infra
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering
   push:
     branches:
       - main
       - qa
       - dev
-#   paths:
-#     - infra/**
-#     - frontend/**
-#     - backend/**
-#     - .github/workflows/**
+    # Uncomment and adjust paths if you only want the workflow to run
+    # when specific files change.
+    # paths:
+    #   - infra/**
+    #   - frontend/**
+    #   - backend/**
+    #   - .github/workflows/** # Keep this path if you uncomment others
 
 permissions:
+  # Granting write permission to the id-token is needed for Workload Identity Federation
   id-token: write
+  # Granting read permission to contents is standard for checking out code
   contents: read
 
 jobs:
-  
-  deploy:
-    name: Deploy Backend
+
+  prepare_backend: # Renamed job for clarity
+    name: Prepare Terraform Backend Bucket
+    # Link this job to the specific environment corresponding to the branch name
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
+      # Google Cloud Authentication Secrets (fetched from environment secrets)
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
-      # The PROVIDER MUST BE SET TO "DEFAULT AUDIENCE"
-      # The value of GCP_WIF_PROVIDER comes from the Wokload Identity Pool page, field IAM Principal from "project...."
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
+      # GCP_REGION is set for the job env, but we'll access vars directly for bucket location
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
-      # Terraform variables
-      TF_STATE_BUCKET: "terraform-state-851493899554"
+      # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
+      # IMPORTANT: Reverted to dynamic naming for multi-environment support
+      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
+      # ENVIRONMENT is useful if needed elsewhere
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
@@ -40,22 +47,36 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: authenticate to Google Cloud
+      - name: Authenticate to Google Cloud
+        # Authenticates using Workload Identity Federation
         uses: google-github-actions/auth@v2
-        id: auth
+        id: auth # Assign an ID to this step if you need to reference its outputs later
         with:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
- 
-      - name: 'Set up Cloud SDK'
+
+      - name: Set up Cloud SDK
+        # Sets up the gcloud CLI on the runner
         uses: 'google-github-actions/setup-gcloud@v2'
 
       # --- Terraform Backend Setup ---
+      # This step ensures the GCS bucket for Terraform state exists before Terraform init
       - name: Ensure Terraform State Bucket Exists
         run: |
+          # Assign shell variables from GitHub Actions contexts/environment
+          # Using env variables set at the job level (except for REGION, directly from vars)
           BUCKET_NAME="${{ env.TF_STATE_BUCKET }}"
           PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
-          REGION="${{ env.GCP_REGION_CH }}"
+          # Accessing vars.GCP_REGION_CH directly here as env.GCP_REGION was unstable in previous logs for this step
+          REGION="${{ vars.GCP_REGION_CH }}"
+
+          # Add debugging output to check variable values (Recommended for troubleshooting)
+          echo "--- Debugging Bucket Creation Variables ---"
+          echo "Bucket Name: ${BUCKET_NAME}"
+          echo "Project ID: ${PROJECT_ID}"
+          echo "Region from vars.GCP_REGION_CH: ${{ vars.GCP_REGION_CH }}" # Print raw vars context value
+          echo "Region shell variable value: ${REGION}" # Print the value assigned to the shell variable
+          echo "------------------------------------------"
 
           # Check if the bucket exists
           if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project="${PROJECT_ID}" > /dev/null 2>&1; then
@@ -63,68 +84,85 @@ jobs:
           else
             echo "Terraform state bucket gs://${BUCKET_NAME} does not exist. Creating..."
             # Create the bucket with uniform bucket-level access for security
+            # Using the shell variables defined above
             gcloud storage buckets create "gs://${BUCKET_NAME}" \
               --project="${PROJECT_ID}" \
-              --location="europe-west6" \
+              --location="${REGION}" \ # <--- Using the shell variable for dynamic location
               --uniform-bucket-level-access
 
             if [ $? -eq 0 ]; then
               echo "Bucket gs://${BUCKET_NAME} created successfully."
             else
               echo "Error creating bucket gs://${BUCKET_NAME}."
-              exit 1
+              exit 1 # Exit the step if bucket creation fails
             fi
           fi
-        env: # Re-define env for clarity within the step script, although inherited
-          TF_STATE_BUCKET_NAME: ${{ env.TF_STATE_BUCKET }}
-          GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
-          GCP_REGION: ${{ env.GCP_REGION_CH }}
+        # Removed the redundant nested env block here
 
-#####  Terraform deployment ####
 
-  service:
-    name: Terraform Deployment
-    needs: [deploy]
+  deploy_infra: # Renamed job for clarity
+    name: Deploy Terraform Infrastructure
+    # This job depends on the backend bucket being prepared
+    needs: [prepare_backend]
+    # Link this job to the specific environment corresponding to the branch name
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
+      # Re-define necessary environment variables for this job
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      # Set GCP_REGION environment variable for this job from the environment variable
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
-      # Terraform variables
-      TF_STATE_BUCKET: "terraform-state-851493899554"
+      # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
+      # IMPORTANT: Reverted to dynamic naming for multi-environment support
+      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
+      # ENVIRONMENT is useful if needed elsewhere
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: authenticate to Google Cloud
+      - name: Authenticate to Google Cloud
+        # Authenticate again for this job
         uses: google-github-actions/auth@v2
         id: auth
         with:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
-      - name: 'Set up Cloud SDK'
+      - name: Set up Cloud SDK
+        # Sets up the gcloud CLI again for this job
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: Setup Terraform
+        # Installs Terraform on the runner
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        run: terraform init
+        # Initialize Terraform, configuring the GCS backend dynamically
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+            -backend-config="prefix=terraform-state" # Keep prefix if needed
         working-directory: infra/
+        # IMPORTANT: Remove or comment out the hardcoded 'backend "gcs"' block in your infra/providers.tf file
 
       - name: Terraform Validate
+        # Validate the Terraform configuration syntax
         run: terraform validate
         working-directory: infra/
 
       - name: Terraform Apply
+        # Apply the Terraform configuration, passing variables
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
             -var="project=${{ env.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}"
+            -var="region=${{ env.GCP_REGION }}" \
+            -var="location=${{ env.GCP_REGION }}" \ # Assuming 'location' variable is needed and is the same as region
+            -var="environment=${{ env.ENVIRONMENT }}" # Pass environment name as a variable
+        # IMPORTANT: Ensure your Terraform code in infra/ has input variables
+        # named 'project', 'region', 'location', and 'environment' if you are passing them.
