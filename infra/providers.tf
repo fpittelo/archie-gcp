@@ -9,10 +9,8 @@ terraform {
       version = "~> 2.0"
     }
   }
-  backend "gcs" {
-    bucket = "terraform-state-851493899554"
-    prefix = "terraform-state"
-  }
+  # Backend configuration is now dynamically set in the workflow
+  # Remove the hardcoded backend block
 }
 provider "google" {
   project = "archie-458607"
