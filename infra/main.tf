@@ -47,7 +47,7 @@ resource "google_storage_bucket" "archiemcp_function_source_bucket" {
 
 # Upload the zipped ArchieMCP function code to GCS
 resource "google_storage_bucket_object" "archiemcp_function_source_archive" {
-  name   = "${var.cloudfunction}-mcp-source-v${data.archive_file.archiemcp_function_source_zip.output_sha1}.zip"
+  name   = "${var.cloudfunction}-mcp-source-v${data.archive_file.archiemcp_function_source_zip.output_sha}.zip"
   bucket = google_storage_bucket.archiemcp_function_source_bucket.name
   source = data.archive_file.archiemcp_function_source_zip.output_path # Path to the zipped file
 }
