@@ -53,13 +53,13 @@ jobs:
             -backend-config="prefix=terraform-state"
         working-directory: infra/
 
-      - name: Terraform Plan (Destroy)
-        run: terraform plan -destroy -var="project_id=${{ env.GCP_PROJECT_ID }}" -var="region=${{ env.GCP_REGION }}" -var="location=${{ env.GCP_REGION }}" -var="environment=${{ env.ENVIRONMENT }}" -var-file="${{ env.ENVIRONMENT }}.tfvars"
+      - name: Terraform Plan
+        run: terraform plan -destroy -var-file="${{ github.ref_name }}.tfvars"
         working-directory: infra/
 
       - name: Terraform Destroy
         run: |
-          terraform destroy -auto-approve -var="project_id=${{ env.GCP_PROJECT_ID }}" -var="region=${{ env.GCP_REGION }}" -var="location=${{ env.GCP_REGION }}" -var="environment=${{ env.ENVIRONMENT }}" -var-file="${{ env.ENVIRONMENT }}.tfvars"
+          terraform destroy -var-file="${{ github.ref_name }}.tfvars" -auto-approve
         working-directory: infra/
 
   destroy_state_bucket:
