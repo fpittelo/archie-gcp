@@ -32,7 +32,7 @@ resource "google_project_iam_member" "archiemcp_sa_log_writer" {
 data "archive_file" "archiemcp_function_source_zip" {
   type        = "zip"
   source_dir  = var.archiemcp_function_source_dir # e.g., ../../functions/archiemcp
-  output_path = "${path.get_terratmp()}/${var.cloudfunction}-mcp-source.zip"
+  output_path = "${path.get_temp_dir()}/${var.cloudfunction}-mcp-source.zip"
 }
 
 # GCS Bucket to store the ArchieMCP Cloud Function source code
