@@ -11,7 +11,8 @@ terraform {
   }
   backend "gcs" {
     bucket = "terraform-state-851493899554"
-    prefix = "terraform-state"
+    prefix = "backend"
+    use_oidc = true
   }
 }
 provider "google" {
