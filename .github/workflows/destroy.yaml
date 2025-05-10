@@ -78,6 +78,7 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
       - name: Delete State Bucket
         run: |
-          echo "Destroying Terraform state bucket gs://${{ env.TF_STATE_BUCKET }}..."
-          gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}" --quiet
+          echo "Destroying Terraform state bucket and its contents gs://${{ env.TF_STATE_BUCKET }}..."
+          gcloud storage rm -r "gs://${{ env.TF_STATE_BUCKET }}/**"
+          gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}"
         continue-on-error: true
