@@ -22,7 +22,7 @@ env:
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ vars.GCP_REGION_CH }}
-  TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
+  TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
   ENVIRONMENT: ${{ github.ref_name }}
 
 jobs:

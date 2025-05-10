@@ -33,7 +33,7 @@ jobs:
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
       # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
-      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
+      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
@@ -102,7 +102,7 @@ jobs:
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
       # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
-      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
+      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
