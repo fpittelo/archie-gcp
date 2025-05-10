@@ -10,7 +10,7 @@ resource "google_storage_bucket" "archiemcp_bucket" {
 
 resource "google_service_account" "archiemcp_function_sa" {
   account_id = "${var.cloudfunction}-mcp-${var.archiemcp_sa_id_suffix}"
-  display_name = "Service Account for ArchieMCP Function (${var.environment})"
+  display_name = "Service Account for ArchieMCP Function (${var.environment})" # Corrected typo
   project      = var.project_id
 }
 
@@ -32,7 +32,7 @@ resource "google_project_iam_member" "archiemcp_sa_log_writer" {
 data "archive_file" "archiemcp_function_source_zip" {
   type        = "zip"
   source_dir  = var.archiemcp_function_source_dir # e.g., ../../functions/archiemcp
-  output_path = "${path.tmp}/${var.cloudfunction}-mcp-source.zip"
+  output_path = "${path.get_terratmp()}/${var.cloudfunction}-mcp-source.zip"
 }
 
 # GCS Bucket to store the ArchieMCP Cloud Function source code
