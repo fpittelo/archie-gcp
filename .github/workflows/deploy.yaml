@@ -16,16 +16,13 @@ on:
     #   - .github/workflows/** # Keep this path if you uncomment others
 
 permissions:
-  # Granting write permission to the id-token is needed for Workload Identity Federation
   id-token: write
-  # Granting read permission to contents is standard for checking out code
   contents: read
 
 jobs:
 
   prepare_backend:
     name: Deploy Backend
-    # Link this job to the specific environment corresponding to the branch name
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
@@ -33,13 +30,10 @@ jobs:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
-      # GCP_REGION is set for the job env, but we'll access vars directly for bucket location
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
       # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
-      # IMPORTANT: Reverted to dynamic naming for multi-environment support
-      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
-      # ENVIRONMENT is useful if needed elsewhere
+      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
@@ -48,15 +42,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
-        # Authenticates using Workload Identity Federation
         uses: google-github-actions/auth@v2
-        id: auth # Assign an ID to this step if you need to reference its outputs later
+        id: auth
         with:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        # Sets up the gcloud CLI on the runner
         uses: 'google-github-actions/setup-gcloud@v2'
 
       # --- Terraform Backend Setup ---
@@ -98,25 +90,19 @@ jobs:
             fi
           fi
 
-  deploy_infra: # Renamed job for clarity
+  deploy_infra:
     name: Deploy Infrastructure
-    # This job depends on the backend bucket being prepared
     needs: [prepare_backend]
-    # Link this job to the specific environment corresponding to the branch name
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
-      # Re-define necessary environment variables for this job
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      # Set GCP_REGION environment variable for this job from the environment variable
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
       # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
-      # IMPORTANT: Reverted to dynamic naming for multi-environment support
-      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
-      # ENVIRONMENT is useful if needed elsewhere
+      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
@@ -124,7 +110,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
-        # Authenticate again for this job
         uses: google-github-actions/auth@v2
         id: auth
         with:
@@ -132,29 +117,23 @@ jobs:
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        # Sets up the gcloud CLI again for this job
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: Setup Terraform
-        # Installs Terraform on the runner
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        # Initialize Terraform, configuring the GCS backend dynamically
         run: |
           terraform init \
             -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
-            -backend-config="prefix=terraform-state" # Keep prefix if needed
+            -backend-config="prefix=terraform-state"
         working-directory: infra/
-        # IMPORTANT: Remove or comment out the hardcoded 'backend "gcs"' block in your infra/providers.tf file
 
       - name: Terraform Validate
-        # Validate the Terraform configuration syntax
         run: terraform validate
         working-directory: infra/
 
       - name: Terraform Apply
-        # Apply the Terraform configuration, passing variables
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
