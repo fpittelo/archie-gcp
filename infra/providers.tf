@@ -4,9 +4,9 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 6.32.0"
     }
-    http = {
-      source  = "terraform-aws-modules/http"
-      version = "~> 2.0"
+    hashicorp = {
+      source  = "hashicorp/http"
+      version = "~> 3.5.0"
     }
   }
   backend "gcs" {
@@ -15,6 +15,7 @@ terraform {
     use_oidc = true
   }
 }
+
 provider "google" {
   project = "archie-458607"
   region  = "europe-west6"
