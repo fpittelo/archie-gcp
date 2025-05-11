@@ -48,6 +48,18 @@ jobs:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
+      - name: grant service account permissions
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/iam.serviceAccountAdmin"
+
+      - name: grant service account permissions
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/serviceusage.serviceUsageAdmin"
+
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
 
