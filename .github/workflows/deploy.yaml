@@ -59,6 +59,12 @@ jobs:
           gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
             --role="roles/serviceusage.serviceUsageAdmin"
+      
+      - name: grant service account permissions
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/cloudfunctions.developer"
 
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
