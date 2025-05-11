@@ -65,17 +65,19 @@ jobs:
             echo "::set-output name=created::true"
           fi
 
-      - name: grant service account permissions
+      - name: Grant Service Account Permissions
         run: |
           gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
             --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
             --role="roles/iam.serviceAccountUser"
-      
-      - name: grant service account permissions
+
+      - name: Grant Terraform Service Account Permission to Act As Cloud Function SA
+        if: steps.create_sa.outputs.created == 'true'
         run: |
-          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+          SA_EMAIL="archiefunct-${{ github.ref_name }}-mcp-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+          gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/iam.serviceAccountAdmin"
+            --role="roles/iam.serviceAccountUser"
 
       - name: grant service account permissions
         run: |
