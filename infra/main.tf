@@ -77,9 +77,9 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
   }
 
   service_config {
-    max_instance_count    = 5
-    min_instance_count    = 0 # Set to 1 for lower cold starts (cost implications)
-    available_memory      = "${var.archiemcp_function_memory_mb}MiB" # Corrected suffix to MiB
+    max_instance_count    = 2
+    min_instance_count    = 1
+    available_memory      = "512M"
     timeout_seconds       = var.archiemcp_function_timeout_seconds
     service_account_email = google_service_account.archiemcp_function_sa.email
     all_traffic_on_latest_revision = true
