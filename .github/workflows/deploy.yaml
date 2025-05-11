@@ -53,7 +53,7 @@ jobs:
         id: create_sa
         run: |
           SA_NAME="archiefunct-${{ github.ref_name }}-mcp-sa"
-          SA_EMAIL="${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}"
+          SA_EMAIL="${SA_NAME}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
 
           if gcloud iam service-accounts describe $SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
             echo "Service account $SA_EMAIL already exists. Skipping creation."
@@ -61,7 +61,8 @@ jobs:
           else
             gcloud iam service-accounts create $SA_NAME \
               --description="Service Account for Cloud Functions" \
-              --display-name="Cloud Functions SA"
+              --display-name="Cloud Functions SA" \
+              --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
             echo "::set-output name=created::true"
           fi
 
@@ -72,7 +73,6 @@ jobs:
             --role="roles/iam.serviceAccountUser"
 
       - name: Grant Terraform Service Account Permission to Act As Cloud Function SA
-        if: steps.create_sa.outputs.created == 'true'
         run: |
           SA_EMAIL="archiefunct-${{ github.ref_name }}-mcp-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
           gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
