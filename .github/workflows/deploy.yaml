@@ -48,6 +48,15 @@ jobs:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
+      - name: Create Service Account
+        run: |
+          gcloud iam service-accounts create archiefunct-dev-mcp-sa \
+            --description="Service Account for Cloud Functions" \
+            --display-name="Cloud Functions SA"
+
+          gcloud iam service-accounts add-iam-policy-binding archiefunct-dev-mcp-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" --role="roles/iam.serviceAccountUser"
+
       - name: grant service account permissions
         run: |
           gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
