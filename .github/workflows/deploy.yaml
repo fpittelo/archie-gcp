@@ -29,6 +29,7 @@ jobs:
       # Google Cloud Authentication Secrets (fetched from environment secrets)
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
@@ -52,7 +53,7 @@ jobs:
         id: create_sa
         run: |
           SA_NAME="archiefunct-${{ github.ref_name }}-mcp-sa"
-          SA_EMAIL="${SA_NAME}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+          SA_EMAIL="${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}"
 
           if gcloud iam service-accounts describe $SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
             echo "Service account $SA_EMAIL already exists. Skipping creation."
@@ -64,6 +65,12 @@ jobs:
             echo "::set-output name=created::true"
           fi
 
+      - name: grant service account permissions
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
+            --role="roles/iam.serviceAccountUser"
+      
       - name: grant service account permissions
         run: |
           gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
