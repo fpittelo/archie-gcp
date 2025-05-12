@@ -72,12 +72,6 @@ jobs:
             --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
             --role="roles/iam.serviceAccountUser"
 
-      - name: Grant MCP SA Permissions to Act As Terraform SA
-        run: |
-          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
-            --role="iam.serviceaccounts.actAs"      
-
       - name: Grant Terraform SA Permission to Act As Cloud Function SA
         run: |
           SA_EMAIL="archiefunct-${{ github.ref_name }}-mcp-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
