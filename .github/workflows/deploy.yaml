@@ -30,6 +30,7 @@ jobs:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}
+      GCP_COMPUTE_SERVICE_ACCOUNT: ${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
@@ -65,6 +66,16 @@ jobs:
               --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
             echo "::set-output name=created::true"
           fi
+
+      - name: Grant Terraform SA permission Compute Service account
+        run: |
+          COMPUTE_SA_EMAIL=${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
+          
+          echo "Granting roles/iam.serviceAccountUser to ${{ env.GCP_SERVICE_ACCOUNT }} on ${COMPUTE_SA_EMAIL}"
+          gcloud iam service-accounts add-iam-policy-binding "${COMPUTE_SA_EMAIL}" \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/iam.serviceAccountUser" \
+            --project="${{ env.GCP_PROJECT_ID }}"
 
       - name: Grant MCP SA Permissions to Act As Terraform SA
         run: |
