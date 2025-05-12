@@ -66,6 +66,12 @@ jobs:
             echo "::set-output name=created::true"
           fi
 
+      - name: Grant Compute SA Permissions
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="851493899554-compute@developer.gserviceaccount.com" \
+            --role="roles/iam.serviceAccountUser"
+
       - name: Grant MCP SA Permissions to Act As Terraform SA
         run: |
           gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
