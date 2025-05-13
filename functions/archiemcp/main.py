@@ -1,4 +1,3 @@
-import functions_framework
 import google.cloud.aiplatform as aiplatform
 import os
 import json
