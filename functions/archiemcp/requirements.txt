@@ -1,2 +1,2 @@
-functions-framework>=3.0.0
+Flask==3.0.3
 google-cloud-aiplatform>=1.49.0 # Or check for the latest stable version
