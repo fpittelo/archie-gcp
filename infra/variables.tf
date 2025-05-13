@@ -46,9 +46,9 @@ variable "archiemcp_function_runtime" {
 }
 
 variable "archiemcp_function_source_dir" {
-   description = "The directory containing the ArchieMCP function source code. Can be a relative or absolute path."
-   type        = any
-   default     = "${get_env("GITHUB_WORKSPACE")}/functions/archiemcp"
+    description = "The directory containing the ArchieMCP function source code. Can be a relative or absolute path."
+    type        = string
+    default     = "../../functions/archiemcp"  # Or a sensible relative default
 }
 
 variable "archiemcp_gemini_model_id" {
