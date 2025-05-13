@@ -28,10 +28,14 @@ resource "google_project_iam_member" "archiemcp_sa_log_writer" {
   member  = "serviceAccount:${google_service_account.archiemcp_function_sa.email}"
 }
 
+locals {
+  archiemcp_source_dir = get_env("GITHUB_WORKSPACE") != "" ? "${get_env("GITHUB_WORKSPACE")}/functions/archiemcp" : var.archiemcp_function_source_dir
+}
+
 # Archive the Cloud Function source code
 data "archive_file" "archiemcp_function_source_zip" {
   type        = "zip"
-  source_dir  = var.archiemcp_function_source_dir # e.g., ../../functions/archiemcp
+  source_dir  = local.archiemcp_source_dir # e.g., ../../functions/archiemcp
   output_path = "$${path.get_temp_dir()}/${var.cloudfunction}-mcp-source.zip"
 }
 
