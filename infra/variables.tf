@@ -31,6 +31,11 @@ variable "cloudfunction" {
   type = string
 }
 
+variable "github_workspace" {
+  description = "The value of the GITHUB_WORKSPACE environment variable."
+  type        = string
+  default     = ""
+}
 ###### New Variables for ArchieMCP Cloud Function ######
 
 variable "archiemcp_function_entry_point" {

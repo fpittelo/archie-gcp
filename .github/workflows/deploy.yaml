@@ -196,4 +196,5 @@ jobs:
             -var="location=${{ env.GCP_REGION }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars"
+            -var="github_workspace=${{ github.workspace }}"
   

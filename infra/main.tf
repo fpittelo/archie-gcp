@@ -29,7 +29,7 @@ resource "google_project_iam_member" "archiemcp_sa_log_writer" {
 }
 
 locals {
-  archiemcp_source_dir = getenv("GITHUB_WORKSPACE") != "" ? "${getenv("GITHUB_WORKSPACE")}/functions/archiemcp" : var.archiemcp_function_source_dir
+  archiemcp_source_dir = var.github_workspace != "" ? "${var.github_workspace}/functions/archiemcp" : var.archiemcp_function_source_dir
 }
 
 # Archive the Cloud Function source code
