@@ -28,7 +28,7 @@ if PROJECT_ID and LOCATION:
 else:
     logging.error("GCP_PROJECT or GCP_REGION environment variables not set internally. Vertex AI SDK not initialized.")
 
-app = Flask(__name__)
+app = create_app()  # Use create_app() to wrap the Flask app
 
 @app.route('/', methods=['POST', 'OPTIONS'])
 def archiemcp():  # Removed 'request' parameter - Flask provides it automatically
