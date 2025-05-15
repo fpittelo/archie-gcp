@@ -1,7 +1,7 @@
 import google.cloud.aiplatform as aiplatform
 import os
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from functions_framework import create_app
 import logging
 
@@ -28,8 +28,7 @@ if PROJECT_ID and LOCATION:
 else:
     logging.error("GCP_PROJECT or GCP_REGION environment variables not set internally. Vertex AI SDK not initialized.")
 
-app = create_app()
-
+app = Flask(__name__)
 
 @app.route('/', methods=['POST', 'OPTIONS'])
 def archiemcp():  # Removed 'request' parameter - Flask provides it automatically

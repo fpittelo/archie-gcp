@@ -65,7 +65,7 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
 
   build_config {
     runtime     = var.archiemcp_function_runtime
-    entry_point = var.archiemcp_function_entry_point # e.g., "archiemcp"
+    entry_point = "app"
     environment_variables = {
       "GCP_PROJECT"    = var.project_id
       "GCP_REGION"     = var.region # Function's region
