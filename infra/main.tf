@@ -32,23 +32,6 @@ locals {
     archiemcp_source_dir = "${path.module}/../functions/archiemcp"
 }
 
-# Archive the Cloud Function source code
-data "archive_file" "archiemcp_function_source_zip" {
-  type        = "zip"
-  source_dir  = local.archiemcp_source_dir # e.g., ../../functions/archiemcp
-  output_path = "$${path.get_temp_dir()}/${var.cloudfunction}-mcp-source.zip"
-}
-
-# GCS Bucket to store the ArchieMCP Cloud Function source code
-resource "google_storage_bucket" "archiemcp_function_source_bucket" {
-  # Bucket names must be globally unique. Incorporate project_id and environment for uniqueness.
-  name                        = "${var.cloudfunction}-mcp-src-${var.project_id}"
-  project                     = var.project_id
-  location                    = var.region # Functions are regional, so source bucket can be regional.
-  uniform_bucket_level_access = true
-  force_destroy               = true # IMPORTANT: Allows deletion of the bucket even if it contains objects during terraform destroy.
-}
-
 # Upload the zipped ArchieMCP function code to GCS
 resource "google_storage_bucket_object" "archiemcp_function_source_archive" {
   name   = "${var.cloudfunction}-mcp-source-v${data.archive_file.archiemcp_function_source_zip.output_sha}.zip"
