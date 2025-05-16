@@ -102,6 +102,21 @@ jobs:
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
             --role="roles/cloudfunctions.developer"
 
+      - name: Activate Artifact Registry API
+        run: |
+          gcloud services enable artifactregistry.googleapis.com \
+            --project=${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Create Artifact Registry Repository
+        run: |
+          REPO_NAME="archie-backend"
+          if ! gcloud artifacts repositories describe $REPO_NAME --location=${{ vars.GCP_REGION_CH }} --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+            gcloud artifacts repositories create $REPO_NAME \
+              --repository-format=docker \
+              --location=${{ vars.GCP_REGION_CH }} \
+              --project=${{ secrets.GCP_PROJECT_ID }}
+          fi
+
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
 
@@ -197,4 +212,72 @@ jobs:
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars"
             -var="github_workspace=${{ github.workspace }}"
+
+  build_and_push_docker_image:
+    name: Build and Push Docker Image
+    needs: [deploy_infra]
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }} # Tag with commit SHA
+      ENVIRONMENT: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ vars.GCP_REGION_CH }}-docker.pkg.dev --quiet
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }} -f ./backend/Dockerfile ./backend/
+
+      - name: Push Docker Image to Artifact Registry
+        run: |
+          docker push ${{ env.IMAGE_NAME }}
+
+  deploy_cloud_run:
+    name: Deploy to Cloud Run
+    needs: [build_and_push_docker_image]
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}
+      SERVICE_NAME: archie-backend-${{ github.ref_name }} # Unique service name per branch
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.IMAGE_NAME }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --platform=managed \
+            --allow-unauthenticated # Adjust authentication as needed
   
