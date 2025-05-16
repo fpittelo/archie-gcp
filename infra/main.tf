@@ -32,13 +32,6 @@ locals {
     archiemcp_source_dir = "${path.module}/../functions/archiemcp"
 }
 
-# Upload the zipped ArchieMCP function code to GCS
-resource "google_storage_bucket_object" "archiemcp_function_source_archive" {
-  name   = "${var.cloudfunction}-mcp-source-v${data.archive_file.archiemcp_function_source_zip.output_sha}.zip"
-  bucket = google_storage_bucket.archiemcp_function_source_bucket.name
-  source = data.archive_file.archiemcp_function_source_zip.output_path # Path to the zipped file
-}
-
 # ArchieMCP Cloud Function (2nd Gen)
 resource "google_cloudfunctions2_function" "archiemcp_function" {
   name        = var.cloudfunction # e.g., "archiefunct-dev" (This is the primary ID for the function)
@@ -57,12 +50,9 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
       "PORT" = "8080"  # Explicitly set the port
     }
     source {
-      storage_source {
-        bucket = google_storage_bucket.archiemcp_function_source_bucket.name
-        object = google_storage_bucket_object.archiemcp_function_source_archive.name
-      }
     }
   }
+
 
   service_config {
     max_instance_count    = 2
@@ -73,6 +63,7 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
     all_traffic_on_latest_revision = true
     ingress_settings               = "ALLOW_ALL" # Allows public invocation. Secure this for production.
   }
+
 
   # Explicitly depend on API services being enabled
   depends_on = [
@@ -110,6 +101,7 @@ resource "google_project_service" "run" {
   disable_dependent_services = false
   disable_on_destroy         = false
 }
+
 
 resource "google_project_service" "artifactregistry" {
   project                    = var.project_id

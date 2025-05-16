@@ -58,13 +58,13 @@ jobs:
 
           if gcloud iam service-accounts describe $SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
             echo "Service account $SA_EMAIL already exists. Skipping creation."
-            echo "::set-output name=created::false"
+            echo "created=false" >> $GITHUB_OUTPUT
           else
             gcloud iam service-accounts create $SA_NAME \
               --description="Service Account for Cloud Functions" \
               --display-name="Cloud Functions SA" \
               --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
-            echo "::set-output name=created::true"
+            echo "created=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Grant Terraform SA permission Compute Service account
@@ -122,7 +122,7 @@ jobs:
               --repository-format=docker \
               --location=${{ vars.GCP_REGION_CH }} \
             --project=${{ secrets.GCP_PROJECT_ID }}
-          else
+          else 
             echo "Artifact Registry repository $REPO_NAME already exists."
           fi
       
@@ -220,7 +220,8 @@ jobs:
             -var="location=${{ env.GCP_REGION }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
-            -var="github_workspace=${{ github.workspace }}"
+            -var="github_workspace=${{ github.workspace }}" \
+            -var="github_sha=${{ github.sha }}"
 
   build_and_push_docker_image:
     name: Build and Push Docker Image

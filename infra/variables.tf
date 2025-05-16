@@ -53,7 +53,7 @@ variable "archiemcp_function_runtime" {
 variable "archiemcp_function_source_dir" {
     description = "The directory containing the ArchieMCP function source code. Can be a relative or absolute path."
     type        = string
-    default     = "../../functions/archiemcp"  # Or a sensible relative default
+    default     = "../functions/archiemcp"  # Or a sensible relative default
 }
 
 variable "archiemcp_gemini_model_id" {
@@ -78,4 +78,8 @@ variable "archiemcp_sa_id_suffix" {
   description = "Suffix for the ArchieMCP service account ID (prefix will be function name)."
   type        = string
   default     = "sa" # Results in e.g., archiefunct-dev-sa
+}
+
+variable "github_sha" {
+  type = string
 }
