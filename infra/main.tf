@@ -66,11 +66,12 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
   build_config {
     runtime     = var.archiemcp_function_runtime
     entry_point = "app"
-    environment_variables = {
+    environment_variables = { # Combined environment variables
       "GCP_PROJECT"    = var.project_id
       "GCP_REGION"     = var.region # Function's region
       "GEMINI_MODEL"   = var.archiemcp_gemini_model_id
       "ENVIRONMENT"    = var.environment
+      "PORT" = "8080"  # Explicitly set the port
     }
     source {
       storage_source {
