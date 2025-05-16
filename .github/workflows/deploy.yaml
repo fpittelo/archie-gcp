@@ -102,11 +102,11 @@ jobs:
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
             --role="roles/cloudfunctions.developer"
 
-      - name: Grant Artifact Registry Admin Role
+      - name: Grant Artifact Registry Repo Admin Role
         run: |
           gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/artifactregistry.admin"
+            --role="roles/artifactregistry.repoAdmin"
 
       - name: Activate Artifact Registry API
         run: |
