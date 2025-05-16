@@ -117,10 +117,14 @@ jobs:
         run: |
           REPO_NAME="archie-backend"
           if ! gcloud artifacts repositories describe $REPO_NAME --location=${{ vars.GCP_REGION_CH }} --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+            echo "Artifact Registry repository $REPO_NAME does not exist. Creating..."
+            echo "::set-output name=created::false"
+          else
             gcloud artifacts repositories create $REPO_NAME \
               --repository-format=docker \
               --location=${{ vars.GCP_REGION_CH }} \
               --project=${{ secrets.GCP_PROJECT_ID }} \
+            echo "::set-output name=created::true"
           fi
 
       - name: Set up Cloud SDK
