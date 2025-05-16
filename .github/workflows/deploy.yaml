@@ -227,7 +227,7 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
-      IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }} # Tag with commit SHA
+      IMAGE_NAME: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }} # Tag with commit SHA
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
@@ -265,7 +265,7 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
       IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}
-      SERVICE_NAME: archie-backend-${{ github.ref_name }} # Unique service name per branch
+      SERVICE_NAME: archie-backend-${{ github.ref_name }}
 
     steps:
       - name: Authenticate to Google Cloud
@@ -285,5 +285,5 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
-            --allow-unauthenticated # Adjust authentication as needed
+            --allow-unauthenticated
   
