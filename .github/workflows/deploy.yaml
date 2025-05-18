@@ -96,6 +96,13 @@ jobs:
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
             --role="roles/cloudfunctions.developer"
 
+      - name: Grant Cloud Function Build Permissions
+        run: |
+          gcloud storage buckets add-iam-policy-binding gcf-v2-sources-***-europe-west6 \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/storage.objectViewer" \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
+
       - name: Grant Cloud Run Admin Role
         run: |
           gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
