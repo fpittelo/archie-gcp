@@ -2,6 +2,7 @@ import google.cloud.aiplatform as aiplatform
 import os
 import json
 import logging
+from flask import Flask, request, jsonify
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -10,9 +11,11 @@ logging.basicConfig(level=logging.INFO)
 # These are automatically set in the Cloud Functions environment
 PROJECT_ID = os.environ.get("GCP_PROJECT")
 LOCATION = os.environ.get("GCP_REGION") # This will be the function's region
+if not LOCATION:
+    LOCATION = os.environ.get("GCP_REGION", "europe-west1") # Default to europe-west1 if not set
 
 # Model ID from environment variable, defaulting if not set
-MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-1.0-pro-001")
+MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-2.0-pro-exp-02-05")
 
 gemini_model_instance = None
 if PROJECT_ID and LOCATION:
