@@ -1,3 +1,26 @@
+resource "google_service_account" "archiemcp_function_sa" {
+  project      = var.project_id
+  account_id   = "${var.cloudfunction}-sa"
+  display_name = "Service Account for ArchieMCP Function"
+}
+
+resource "google_cloudfunctions2_function" "archiemcp_function" {
+  name        = var.cloudfunction
+  project     = var.project_id
+  location    = var.location
+  description = "ArchieMCP Cloud Function"
+
+  build_config {
+    runtime = "python311"
+    source {
+      storage_source {
+        bucket = google_storage_bucket.archiemcp_bucket.name
+        object = google_storage_bucket_object.archiemcp_function_source.name
+      }
+    }
+    entry_point = "main"
+  }
+}
 
 resource "google_storage_bucket" "archiemcp_bucket" {
   name                        = var.storage_bucket
@@ -6,6 +29,14 @@ resource "google_storage_bucket" "archiemcp_bucket" {
   
   uniform_bucket_level_access = true
   force_destroy = true
+}
+
+resource "google_storage_bucket_object" "archiemcp_function_source" {
+  name   = "function-source-${data.archive_file.function_source.output_md5}.zip"
+  bucket = google_storage_bucket.archiemcp_bucket.name
+  source = data.archive_file.function_source.output_path
+  # Setting content_type is necessary to prevent issues with Google Cloud Functions deployments
+  content_type = "application/zip"
 }
 
 # --- Enable Necessary APIs ---
@@ -23,6 +54,14 @@ resource "google_project_service" "run" {
   disable_dependent_services = false
   disable_on_destroy         = false
 }
+
+data "archive_file" "function_source" {
+  type        = "zip"
+  output_path = "${path.module}/tmp/function_source.zip"
+  source_dir  = "${var.github_workspace}/backend/functions/archiemcp"
+}
+
+
 
 
 resource "google_project_service" "artifactregistry" {

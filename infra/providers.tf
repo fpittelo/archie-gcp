@@ -17,6 +17,6 @@ terraform {
 }
 
 provider "google" {
-  project = "archie-458607"
-  region  = "europe-west6"
+  project = var.project_id
+  region  = var.region
 }
