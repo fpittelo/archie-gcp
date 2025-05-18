@@ -1,6 +1,6 @@
 output "archiemcp_function_uri" {
   description = "The HTTPS URI of the deployed ArchieMCP Cloud Function."
-  value       = google_cloudfunctions2_function.archiemcp_function.uri
+  value       = google_cloudfunctions2_function.archiemcp_function.url
   sensitive   = false # URIs are generally not sensitive but can be if they imply internal structure
 }
 
