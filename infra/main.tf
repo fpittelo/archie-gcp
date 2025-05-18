@@ -13,6 +13,7 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
   build_config {
     runtime = "python311"
     entry_point = "app"
+    service_account = google_service_account.archiemcp_function_sa.email
     source {
       storage_source {
         bucket = google_storage_bucket.archiemcp_bucket.name
@@ -23,6 +24,8 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
   service_config {
     max_instance_count = 3
     min_instance_count = 0
+    available_memory   = "256Mi"
+    timeout_seconds    = 60 
   }
 }
 
