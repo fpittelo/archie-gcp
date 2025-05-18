@@ -58,11 +58,8 @@ resource "google_project_service" "run" {
 data "archive_file" "function_source" {
   type        = "zip"
   output_path = "${path.module}/tmp/function_source.zip"
-  source_dir  = "../backend/functions/archiemcp"
+  source_dir  = "${var.github_workspace}/backend/functions/archiemcp"
 }
-
-
-
 
 resource "google_project_service" "artifactregistry" {
   project                    = var.project_id
