@@ -92,3 +92,15 @@ resource "google_project_service" "iam" { # Identity and Access Management API
   disable_dependent_services = false
   disable_on_destroy         = false
 }
+
+resource "google_project_iam_member" "function_sa_aiplatform_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = google_service_account.archiemcp_function_sa.member
+}
+
+resource "google_project_iam_member" "function_sa_log_writer" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = google_service_account.archiemcp_function_sa.member
+}
