@@ -107,3 +107,9 @@ resource "google_project_iam_member" "function_sa_log_writer" {
   role    = "roles/logging.logWriter"
   member  = google_service_account.archiemcp_function_sa.member
 }
+
+resource "google_service_account_iam_member" "gha_can_act_as_function_sa" {
+  service_account_id = google_service_account.archiemcp_function_sa.name 
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.deployer_service_account_email}" 
+}

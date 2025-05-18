@@ -39,3 +39,8 @@ variable "github_workspace" {
 variable "github_sha" {
   type = string
 }
+
+variable "deployer_service_account_email" {
+  description = "The email of the service account used by GitHub Actions to deploy resources."
+  type        = string
+}
