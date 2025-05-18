@@ -13,7 +13,7 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
   build_config {
     runtime = "python311"
     entry_point = "app"
-    service_account = google_service_account.archiemcp_function_sa.email
+    service_account = google_service_account.archiemcp_function_sa.name
     source {
       storage_source {
         bucket = google_storage_bucket.archiemcp_bucket.name
