@@ -83,12 +83,6 @@ jobs:
             --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
             --role="roles/iam.serviceAccountUser"
 
-      - name: Grant Terraform SA Permission to Act As Cloud Function SA
-        run: |
-          SA_EMAIL="archiefunct-${{ github.ref_name }}-mcp-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
-          gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
-            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/iam.serviceAccountUser"
 
       - name: Grant permissions to SA for Cloud Functions
         run: |
@@ -101,6 +95,12 @@ jobs:
           gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
             --role="roles/cloudfunctions.developer"
+
+      - name: Grant Cloud Run Admin Role
+        run: |
+          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/run.admin"
 
       - name: Grant Artifact Registry Repo Admin Role
         run: |
@@ -223,7 +223,7 @@ jobs:
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}"
 
-  build_and_push_docker_image:
+  build_push_deploy_docker_image:
     name: Build and Push Docker Image
     needs: [deploy_infra]
     environment: ${{ github.ref_name }}
@@ -258,4 +258,12 @@ jobs:
 
       - name: Push Docker Image to Artifact Registry
         run: |
-          docker push ${{ env.IMAGE_NAME }}
+          docker push ${{ env.IMAGE_NAME }} 
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy archie-mcp-${{ github.ref_name }} \
+            --image=${{ env.IMAGE_NAME }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --allow-unauthenticated # For simplicity in the lab.  Restrict in production.

@@ -1,8 +1,6 @@
 import google.cloud.aiplatform as aiplatform
 import os
 import json
-from flask import Flask, request
-from functions_framework import create_app
 import logging
 
 # Configure basic logging
@@ -28,9 +26,9 @@ if PROJECT_ID and LOCATION:
 else:
     logging.error("GCP_PROJECT or GCP_REGION environment variables not set internally. Vertex AI SDK not initialized.")
 
-app = create_app()  # Use create_app() to wrap the Flask app
+app = Flask(__name__)
 
-@app.route('/', methods=['POST', 'OPTIONS'])
+@app.route('/', methods=['POST', 'OPTIONS']) # Removed 'request' parameter
 def archiemcp():  # Removed 'request' parameter - Flask provides it automatically
     """
     HTTP Cloud Function to proxy requests to the Gemini API.
@@ -94,3 +92,7 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
         logging.error(f"Error during Gemini API call or response processing: {e}", exc_info=True)
         # Provide a more generic error message to the client for security
         return (json.dumps({"error": "An internal error occurred while processing your request."}), 500, headers)
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
