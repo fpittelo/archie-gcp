@@ -4,30 +4,44 @@ resource "google_service_account" "archiemcp_function_sa" {
   display_name = "Service Account for ArchieMCP Function"
 }
 
-resource "google_cloudfunctions2_function" "archiemcp_function" {
-  name        = var.cloudfunction
-  project     = var.project_id
-  location    = var.location
-  description = "ArchieMCP Cloud Function"
+# Cloud Run v2 Service resource
+resource "google_cloud_run_v2_service" "archiemcp_service" {
+  name     = var.cloudfunction // e.g., "archiefunct-dev"
+  project  = var.project_id
+  location = var.location 
 
-  build_config {
-    runtime = "python311"
-    entry_point = "app"
-    service_account = google_service_account.archiemcp_function_sa.name
-    source {
-      storage_source {
-        bucket = google_storage_bucket.archiemcp_bucket.name
-        object = google_storage_bucket_object.archiemcp_function_source.name
+  template {
+    service_account = google_service_account.archiemcp_function_sa.email // Runtime SA
+    containers {
+      image = "us-docker.pkg.dev/cloudrun/container/hello" // Placeholder, will be replaced by source build
+      ports {
+        container_port = 8080
+      }
+      resources {
+        limits = {
+          cpu    = "1000m"
+          memory = "512Mi" // Adjust as needed
+        }
       }
     }
+    timeout = "60s" // Request timeout for Cloud Run service
+    # execution_environment = "EXECUTION_ENVIRONMENT_GEN2" // Not needed if image is specified or built from source like this
   }
-  service_config {
-    max_instance_count = 3
-    min_instance_count = 0
-    available_memory   = "256Mi"
-    timeout_seconds    = 60
-    service_account_email = google_service_account.archiemcp_function_sa.email
-  }
+}
+
+# To allow unauthenticated access (like GCF default HTTP):
+resource "google_cloud_run_v2_service_iam_member" "allow_unauthenticated" {
+  project  = google_cloud_run_v2_service.archiemcp_service.project
+  location = google_cloud_run_v2_service.archiemcp_service.location
+  name     = google_cloud_run_v2_service.archiemcp_service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# Output the URL
+output "archiemcp_cloud_run_service_uri" {
+  description = "The HTTPS URI of the deployed ArchieMCP Cloud Run service."
+  value       = google_cloud_run_v2_service.archiemcp_service.uri
 }
 
 resource "google_storage_bucket" "archiemcp_bucket" {

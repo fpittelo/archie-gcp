@@ -223,6 +223,7 @@ jobs:
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
+            TF_VAR_archiefunct_image_uri: ${{ needs.build_archiefunct_image.outputs.image_uri }} # Pass the image URI
 
   build_push_deploy_docker_image:
     name: Build and Push Docker Image

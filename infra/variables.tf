@@ -44,3 +44,8 @@ variable "deployer_service_account_email" {
   description = "The email of the service account used by GitHub Actions to deploy resources."
   type        = string
 }
+
+variable "archiefunct_image_uri" {
+  description = "The URI of the Docker image for the archiefunct service from Artifact Registry."
+  type        = string
+}
