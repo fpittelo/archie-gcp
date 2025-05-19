@@ -25,7 +25,8 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
     max_instance_count = 3
     min_instance_count = 0
     available_memory   = "256Mi"
-    timeout_seconds    = 60 
+    timeout_seconds    = 60
+    service_account_email = google_service_account.archiemcp_function_sa.name
   }
 }
 
@@ -118,4 +119,10 @@ resource "google_storage_bucket_iam_member" "function_sa_can_read_source_bucket"
   bucket = google_storage_bucket.archiemcp_bucket.name // This is your "archiemcp-dev" bucket
   role   = "roles/storage.objectViewer"
   member = google_service_account.archiemcp_function_sa.member // Grants permission to "archiefunct-dev-sa@..."
+}
+
+resource "google_project_iam_member" "function_build_sa_project_storage_viewer" {
+  project = var.project_id
+  role    = "roles/storage.objectViewer"
+  member  = google_service_account.archiemcp_function_sa.member
 }
