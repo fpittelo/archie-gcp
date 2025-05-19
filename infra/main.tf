@@ -126,3 +126,9 @@ resource "google_project_iam_member" "function_build_sa_project_storage_viewer" 
   role    = "roles/storage.objectViewer"
   member  = google_service_account.archiemcp_function_sa.member
 }
+
+resource "google_project_iam_member" "function_build_sa_artifact_registry_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer" // Allows reading and writing to any AR repo in the project
+  member  = google_service_account.archiemcp_function_sa.member
+}
