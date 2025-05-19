@@ -26,7 +26,7 @@ resource "google_cloudfunctions2_function" "archiemcp_function" {
     min_instance_count = 0
     available_memory   = "256Mi"
     timeout_seconds    = 60
-    service_account_email = google_service_account.archiemcp_function_sa.name
+    service_account_email = google_service_account.archiemcp_function_sa.email
   }
 }
 
