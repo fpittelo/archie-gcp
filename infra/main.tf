@@ -38,12 +38,6 @@ resource "google_cloud_run_v2_service_iam_member" "allow_unauthenticated" {
   member   = "allUsers"
 }
 
-# Output the URL
-output "archiemcp_cloud_run_service_uri" {
-  description = "The HTTPS URI of the deployed ArchieMCP Cloud Run service."
-  value       = google_cloud_run_v2_service.archiemcp_service.uri
-}
-
 resource "google_storage_bucket" "archiemcp_bucket" {
   name                        = var.storage_bucket
   project                     = var.project_id
