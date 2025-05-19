@@ -96,14 +96,6 @@ jobs:
             --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
             --role="roles/cloudfunctions.developer"
 
-      - name: Grant Cloud Function Build Permissions
-        run: |
-          BUCKET_URL="gs://gcf-v2-sources-851493899554-europe-west6"
-          echo "Granting roles/storage.objectViewer to ${{ env.GCP_SERVICE_ACCOUNT }} on bucket $BUCKET_URL"
-          gcloud storage buckets add-iam-policy-binding "$BUCKET_URL" \
-            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/storage.objectViewer"
-
       - name: Grant Cloud Run Admin Role
         run: |
           gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
