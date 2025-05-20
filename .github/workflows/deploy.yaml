@@ -224,11 +224,6 @@ jobs:
             -var="github_sha=${{ github.sha }}" \
             -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
-          env:
-            GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
-            GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-            GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-            GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
   build_push_deploy_docker_image:
     name: Build and Push Docker Image
