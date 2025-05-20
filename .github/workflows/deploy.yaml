@@ -215,7 +215,7 @@ jobs:
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
-            -var="project_id=${{ env.GCP_PROJECT_ID }}" \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
@@ -260,7 +260,7 @@ jobs:
 
       - name: Push Docker Image to Artifact Registry
         run: |
-          docker push ${{ env.IMAGE_NAME }} 
+          docker push ${{ env.IMAGE_NAME }}
 
       - name: Deploy to Cloud Run
         run: |
