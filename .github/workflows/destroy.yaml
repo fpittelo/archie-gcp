@@ -47,6 +47,18 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
+        id: init
+        run: |
+          terraform init -upgrade \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+            -backend-config="prefix=terraform-state"
+        working-directory: infra/
+
+      - name: Terraform Refresh
+        run: terraform refresh
+        working-directory: infra/
+
+      - name: Terraform Init
         run: |
           terraform init \
             -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
@@ -56,22 +68,29 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan -destroy -var-file="${{ github.ref_name }}.tfvars" \
+          terraform plan -destroy -var-file="${{ github.ref_name }}.tfvars" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var-file="${{ github.ref_name }}.tfvars" \
+            -var="environment=${{ github.event.inputs.environment }}" \
+            -var-file="${{ github.event.inputs.environment }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
-            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}" \
+            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
 
       - name: Terraform Destroy
         run: |
           terraform destroy -var-file="${{ github.ref_name }}.tfvars" -auto-approve \
-            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder" \
-            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
+          terraform destroy -auto-approve \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="region=${{ env.GCP_REGION }}" \
+            -var="location=${{ env.GCP_REGION }}" \
+            -var="environment=${{ github.event.inputs.environment }}" \
+            -var-file="${{ github.event.inputs.environment }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
+            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder" \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
