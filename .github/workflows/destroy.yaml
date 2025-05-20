@@ -56,7 +56,14 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan -destroy -var-file="${{ github.ref_name }}.tfvars" \
-            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder" \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="region=${{ env.GCP_REGION }}" \
+            -var="location=${{ env.GCP_REGION }}" \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var-file="${{ github.ref_name }}.tfvars" \
+            -var="github_workspace=${{ github.workspace }}" \
+            -var="github_sha=${{ github.sha }}" \
+            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
 
@@ -64,5 +71,7 @@ jobs:
         run: |
           terraform destroy -var-file="${{ github.ref_name }}.tfvars" -auto-approve \
             -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder" \
-            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
+            -var="github_workspace=${{ github.workspace }}" \
+            -var="github_sha=${{ github.sha }}" \
         working-directory: infra/
