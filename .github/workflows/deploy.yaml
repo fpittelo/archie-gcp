@@ -256,7 +256,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t ${{ env.IMAGE_NAME }} -f ./backend/Dockerfile ./backend/
+          docker build -t ${{ env.IMAGE_NAME }} -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
 
       - name: Push Docker Image to Artifact Registry
         run: |
