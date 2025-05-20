@@ -67,15 +67,15 @@ jobs:
             echo "created=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Grant Terraform SA permission Compute Service account
-        run: |
-          COMPUTE_SA_EMAIL=${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
-          
-          echo "Granting roles/iam.serviceAccountUser to ${{ env.GCP_SERVICE_ACCOUNT }} on ${COMPUTE_SA_EMAIL}"
-          gcloud iam service-accounts add-iam-policy-binding "${COMPUTE_SA_EMAIL}" \
-            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/iam.serviceAccountUser" \
-            --project="${{ env.GCP_PROJECT_ID }}"
+#     - name: Grant Terraform SA permission Compute Service account
+#       run: |
+#         COMPUTE_SA_EMAIL=${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
+#         
+#         echo "Granting roles/iam.serviceAccountUser to ${{ env.GCP_SERVICE_ACCOUNT }} on ${COMPUTE_SA_EMAIL}"
+#         gcloud iam service-accounts add-iam-policy-binding "${COMPUTE_SA_EMAIL}" \
+#           --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+#           --role="roles/iam.serviceAccountUser" \
+#           --project="${{ env.GCP_PROJECT_ID }}"
 
       - name: Grant MCP SA Permissions to Act As Terraform SA
         run: |
