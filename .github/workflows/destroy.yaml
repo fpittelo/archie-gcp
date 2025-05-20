@@ -56,11 +56,13 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan -destroy -var-file="${{ github.ref_name }}.tfvars" \
-            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder"
+            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder" \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
 
       - name: Terraform Destroy
         run: |
           terraform destroy -var-file="${{ github.ref_name }}.tfvars" -auto-approve \
-            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder"
+            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:placeholder" \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
