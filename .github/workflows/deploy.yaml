@@ -211,7 +211,7 @@ jobs:
         run: terraform validate
         working-directory: infra/
 
-      - name: Terraform Apply
+      - name: Terraform Apply deletion_protection=false
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
