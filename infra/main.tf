@@ -9,6 +9,7 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
   name     = var.cloudfunction // e.g., "archiefunct-dev"
   project  = var.project_id
   location = var.location 
+  deletion_protection = false # Add this line
 
   template {
     service_account = google_service_account.archiemcp_function_sa.email // Runtime SA
