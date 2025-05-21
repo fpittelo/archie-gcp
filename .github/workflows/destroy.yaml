@@ -17,19 +17,24 @@ permissions:
   contents: read
 
 env:
-  # These environment variables will be available to all jobs
+  # Global environment variables
   GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
-  GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+  GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }} # Service account for GHA
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION: ${{ vars.GCP_REGION_CH }}
+  GCP_REGION_CH: ${{ vars.GCP_REGION_CH }} # Ensure this is a global var or defined per GH env
   TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
-  ENVIRONMENT: ${{ github.ref_name }}
+  # GCP_ARTIFACT_IMAGE_NAME will be pulled from GitHub environment vars per job
 
 jobs:
-  destroy_infra:
-    name: Destroy Infra
+  terraform_destroy_resources:
+    name: 1. Terraform Destroy GCP Resources for ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name }}
+    # Use the input to select the GitHub Environment context
+    # This allows access to environment-specific vars like GCP_ARTIFACT_IMAGE_NAME
+    environment: ${{ github.event.inputs.environment }} 
+    env:
+      # Make the selected environment name available locally in the job if needed
+      TARGET_ENVIRONMENT: ${{ github.event.inputs.environment }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -48,25 +53,51 @@ jobs:
 
       - name: Terraform Init
         run: |
-          terraform init \
+          terraform init -upgrade \
             -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
             -backend-config="prefix=terraform-state"
         working-directory: infra/
 
-      - name: Terraform Plan
-        run: terraform plan -destroy -var-file="${{ github.ref_name }}.tfvars"
+      - name: Terraform Plan Destroy (Optional Visibility)
+        run: |
+          echo "Planning destruction for environment: ${{ env.TARGET_ENVIRONMENT }}"
+          echo "Using Artifact Image Name from GitHub Environment Var: ${{ vars.GCP_ARTIFACT_IMAGE_NAME }}"
+          terraform plan -destroy \
+            -var="project_id=${{ env.GCP_PROJECT_ID }}" \
+            -var="region=${{ env.GCP_REGION_CH }}" \
+            -var="location=${{ env.GCP_REGION_CH }}" \
+            -var="environment=${{ env.TARGET_ENVIRONMENT }}" \
+            -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
+            -var="github_workspace=${{ github.workspace }}" \
+            -var="github_sha=destroyplaceholder" \
+            -var="archie_mcp_image_uri=${{ env.GCP_REGION_CH }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
 
       - name: Terraform Destroy
         run: |
-          terraform destroy -var-file="${{ github.ref_name }}.tfvars" -auto-approve
+          echo "Destroying resources for environment: ${{ env.TARGET_ENVIRONMENT }}"
+          echo "Using Artifact Image Name from GitHub Environment Var for TF: ${{ vars.GCP_ARTIFACT_IMAGE_NAME }}"
+          terraform destroy -auto-approve \
+            -var="project_id=${{ env.GCP_PROJECT_ID }}" \
+            -var="region=${{ env.GCP_REGION_CH }}" \
+            -var="location=${{ env.GCP_REGION_CH }}" \
+            -var="environment=${{ env.TARGET_ENVIRONMENT }}" \
+            -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
+            -var="github_workspace=${{ github.workspace }}" \
+            -var="github_sha=destroyplaceholder" \
+            -var="archie_mcp_image_uri=${{ env.GCP_REGION_CH }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
 
-  destroy_state_bucket:
-    name: Destroy Backend
+  cleanup_artifact_registry_images:
+    name: 2. Delete Docker Images for ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
-    needs: [destroy_infra]
-    environment: ${{ github.ref_name }}
+    needs: [terraform_destroy_resources] # Run after Terraform destroy
+    if: success() # Only run if the previous job was successful
+    environment: ${{ github.event.inputs.environment }} # To access vars.GCP_ARTIFACT_IMAGE_NAME
+    env:
+      TARGET_ENVIRONMENT: ${{ github.event.inputs.environment }}
     steps:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -76,9 +107,91 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
-      - name: Delete State Bucket
+      
+      - name: Delete Docker Images from Artifact Registry
         run: |
-          echo "Destroying Terraform state bucket and its contents gs://${{ env.TF_STATE_BUCKET }}..."
-          gcloud storage rm -r "gs://${{ env.TF_STATE_BUCKET }}/**"
-          gcloud storage buckets delete "gs://${{ env.TF_STATE_BUCKET }}"
-        continue-on-error: true
+          # vars.GCP_ARTIFACT_IMAGE_NAME is resolved from the GitHub Environment context
+          TARGET_IMAGE_BASE_URI="${{ env.GCP_REGION_CH }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}"
+          echo "Attempting to delete all tags for image: ${TARGET_IMAGE_BASE_URI}"
+
+          IMAGE_VERSIONS_JSON=$(gcloud artifacts docker images list "${TARGET_IMAGE_BASE_URI}" --include-tags --format=json --project=${{ env.GCP_PROJECT_ID }})
+          
+          if echo "$IMAGE_VERSIONS_JSON" | jq -e '.[] | length > 0' > /dev/null; then
+            echo "$IMAGE_VERSIONS_JSON" | jq -r '.[].version' | while read version; do
+              IMAGE_TO_DELETE_FULL_URI="${TARGET_IMAGE_BASE_URI}@${version}" # Deleting by digest is most robust
+              if [[ "$version" != *"sha256:"* ]]; then # If version is a tag, not a digest
+                 IMAGE_TO_DELETE_FULL_URI="${TARGET_IMAGE_BASE_URI}:${version}"
+              fi
+              echo "Deleting image version: ${IMAGE_TO_DELETE_FULL_URI}"
+              gcloud artifacts docker images delete "${IMAGE_TO_DELETE_FULL_URI}" --delete-tags --project=${{ env.GCP_PROJECT_ID }} --quiet || echo "Warning: Failed to delete ${IMAGE_TO_DELETE_FULL_URI} or it was already deleted."
+            done
+          else
+            echo "No image versions found for ${TARGET_IMAGE_BASE_URI} to delete."
+          fi
+
+  cleanup_artifact_registry_repository:
+    name: 3. Delete Artifact Registry Repository for ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [cleanup_artifact_registry_images] # Run after images are deleted
+    if: success() # Only run if image deletion was successful
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        # ... (same auth as above) ...
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Delete Artifact Registry Repository (archie-backend)
+        run: |
+          echo "Attempting to delete Artifact Registry repository: archie-backend"
+          # Note: This deletes the common 'archie-backend' repository. 
+          # If you intend for each environment (dev, qa, main) to have its OWN repository,
+          # then the repository name should also be environment-specific.
+          # If 'archie-backend' is shared, only delete it if destroying the LAST environment.
+          # For a lab where each branch deploys to a common 'archie-backend' but uses unique image names,
+          # you might not want to delete the repository unless all environments are being torn down.
+          # For now, this will attempt to delete 'archie-backend'.
+          gcloud artifacts repositories delete archie-backend \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --location=${{ env.GCP_REGION_CH }} \
+            --quiet || echo "Warning: Failed to delete repository 'archie-backend'. It might not be empty, not exist, or you lack permissions."
+
+  # Add this new job to the end of your jobs list in destroy.yaml
+
+  delete_terraform_state_bucket:
+    name: 4. Delete Terraform State GCS Bucket for ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [cleanup_artifact_registry_repository] # Ensure this runs last
+    if: success() # Only run if all previous dependent jobs were successful
+    environment: ${{ github.event.inputs.environment }} # Maintain environment context
+    
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Empty and Delete GCS Bucket for Terraform State
+        run: |
+          BUCKET_NAME_TO_DELETE="gs://${{ env.TF_STATE_BUCKET }}"
+          echo "Attempting to empty and delete GCS bucket: ${BUCKET_NAME_TO_DELETE}"
+          
+          # Empty the bucket. 
+          # The '--recursive' flag will delete all objects and versions.
+          # Adding '|| true' so that if the bucket is already empty or doesn't exist, the step doesn't fail the workflow.
+          gcloud storage rm --recursive "${BUCKET_NAME_TO_DELETE}" --project=${{ env.GCP_PROJECT_ID }} --quiet || echo "Bucket ${BUCKET_NAME_TO_DELETE} was empty or did not exist."
+          
+          # Delete the bucket itself
+          # Adding '|| true' for the same reason as above.
+          gcloud storage buckets delete "${BUCKET_NAME_TO_DELETE}" --project=${{ env.GCP_PROJECT_ID }} --quiet || echo "Bucket ${BUCKET_NAME_TO_DELETE} was already deleted or failed to delete (ensure it was empty)."
+          
+          echo "GCS bucket ${BUCKET_NAME_TO_DELETE} deletion process attempted."

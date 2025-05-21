@@ -29,6 +29,8 @@ jobs:
       # Google Cloud Authentication Secrets (fetched from environment secrets)
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}
+      GCP_COMPUTE_SERVICE_ACCOUNT: ${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
 
@@ -48,6 +50,80 @@ jobs:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
+#     - name: Create Service Account (if not exists)
+#       run: |
+#         TERRAFORM_SA_NAME="archiefunct-dev-sa"  # Name Terraform will use
+#         TERRAFORM_SA_EMAIL="${TERRAFORM_SA_NAME}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+#          if gcloud iam service-accounts describe $TERRAFORM_SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+#           echo "Service account $TERRAFORM_SA_EMAIL already exists (likely created by Terraform in a previous run). Skipping creation."
+#         else
+#           echo "Service account $TERRAFORM_SA_EMAIL does not exist. Creating..."
+#           gcloud iam service-accounts create $TERRAFORM_SA_NAME \
+#             --description="Service Account for Cloud Functions" \
+#             --display-name="Cloud Functions SA" \
+#             --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
+#           echo "created=true" >> $GITHUB_OUTPUT
+#         fi
+
+#     - name: Grant Terraform SA permission Compute Service account
+#       run: |
+#         COMPUTE_SA_EMAIL=${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
+#         
+#         echo "Granting roles/iam.serviceAccountUser to ${{ env.GCP_SERVICE_ACCOUNT }} on ${COMPUTE_SA_EMAIL}"
+#         gcloud iam service-accounts add-iam-policy-binding "${COMPUTE_SA_EMAIL}" \
+#           --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+#           --role="roles/iam.serviceAccountUser" \
+#           --project="${{ env.GCP_PROJECT_ID }}"
+
+      - name: Grant MCP SA Permissions to Act As Terraform SA
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
+            --role="roles/iam.serviceAccountUser"
+
+
+      - name: Grant permissions to SA for Cloud Functions
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/serviceusage.serviceUsageAdmin"
+      
+      - name: grant service account permissions
+        run: |
+          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/cloudfunctions.developer"
+
+      - name: Grant Cloud Run Admin Role
+        run: |
+          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/run.admin"
+
+      - name: Grant Artifact Registry Repo Admin Role
+        run: |
+          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
+            --role="roles/artifactregistry.repoAdmin"
+
+      - name: Activate Artifact Registry API
+        run: |
+          gcloud services enable artifactregistry.googleapis.com \
+            --project=${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Create Artifact Registry Repository
+        run: |
+          REPO_NAME="archie-backend"
+          if ! gcloud artifacts repositories describe $REPO_NAME --location=${{ vars.GCP_REGION_CH }} --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+            echo "Artifact Registry repository $REPO_NAME does not exist. Creating..."
+            gcloud artifacts repositories create $REPO_NAME \
+              --repository-format=docker \
+              --location=${{ vars.GCP_REGION_CH }} \
+            --project=${{ secrets.GCP_PROJECT_ID }}
+          else 
+            echo "Artifact Registry repository $REPO_NAME already exists."
+          fi
+      
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
 
@@ -90,9 +166,70 @@ jobs:
             fi
           fi
 
+##### End of Terraform Backend Setup #####
+
+  build_and_push_image:
+    name: Build and Push Docker Image
+    needs: [prepare_backend]
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      GCP_ARTIFACT_IMAGE_NAME: ${{ vars.GCP_ARTIFACT_IMAGE_NAME }}
+      # This should match what Terraform expects for archie_mcp_image_uri
+      IMAGE_TO_PUSH: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}
+      ENVIRONMENT: ${{ github.ref_name }}
+    # If you want to pass the exact pushed URI to Terraform (more robust) outputs:
+    #   image_uri: ${{ steps.tag_and_build_image.outputs.image_uri_with_sha }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker Image
+        id: tag_and_build_image
+        run: |
+          echo "Building and tagging image as: ${{ env.IMAGE_TO_PUSH }}"
+          docker build -t "${{ env.IMAGE_TO_PUSH }}" -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
+          # If using outputs:
+          # echo "image_uri_with_sha=${{ env.IMAGE_TO_PUSH }}" >> $GITHUB_OUTPUT
+
+      - name: Debug IMAGE_NAME (Corrected to IMAGE_TO_PUSH)
+        run: |
+          echo "IMAGE_TO_PUSH is: ${{ env.IMAGE_TO_PUSH }}"
+
+      - name: Push Docker Image to Artifact Registry
+        run: |
+          docker push "${{ env.IMAGE_TO_PUSH }}"
+
+#     - name: Deploy to Cloud Run
+#       run: |
+#         gcloud run deploy archie-mcp-${{ github.ref_name }} \
+#           --image=${{ env.IMAGE_NAME }} \
+#           --region=${{ env.GCP_REGION }} \
+#           --project=${{ env.GCP_PROJECT_ID }} \
+#           --allow-unauthenticated # For simplicity in the lab.  Restrict in production.
+
+##### End of Build and Push Image #####
+
   deploy_infra:
     name: Deploy Infrastructure
-    needs: [prepare_backend]
+    needs: [build_and_push_image]
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
@@ -133,13 +270,16 @@ jobs:
         run: terraform validate
         working-directory: infra/
 
-      - name: Terraform Apply
+      - name: Terraform Apply deletion_protection=false
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
-            -var="project_id=${{ env.GCP_PROJECT_ID }}" \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
-            -var-file="${{ github.ref_name }}.tfvars"
-  
+            -var-file="${{ github.ref_name }}.tfvars" \
+            -var="github_workspace=${{ github.workspace }}" \
+            -var="github_sha=${{ github.sha }}" \
+            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}" \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"

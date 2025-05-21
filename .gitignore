@@ -1,0 +1,19 @@
+# Google Drive file shortcuts
+*.gdoc
+*.gsheet
+*.gslides
+*.gdraw
+*.gtable
+*.gform
+
+# Optional: If you also download/export these files
+# and want to ignore common formats, you can add them too.
+# For example:
+# *.docx
+# *.odt
+# *.pdf
+# *.xlsx
+# *.ods
+# *.csv
+# *.pptx
+# *.odp
