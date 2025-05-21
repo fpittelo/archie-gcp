@@ -176,11 +176,11 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      GCP_ARTIFACT_IMAGE_NAME: ${{ vars.GCP_ARTIFACT_IMAGE_NAME }}
       # This should match what Terraform expects for archie_mcp_image_uri
-      IMAGE_TO_PUSH: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}
+      IMAGE_TO_PUSH: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}
       ENVIRONMENT: ${{ github.ref_name }}
-    # If you want to pass the exact pushed URI to Terraform (more robust)
-    # outputs:
+    # If you want to pass the exact pushed URI to Terraform (more robust) outputs:
     #   image_uri: ${{ steps.tag_and_build_image.outputs.image_uri_with_sha }}
 
     steps:
@@ -281,5 +281,5 @@ jobs:
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
-            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}" \
+            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
