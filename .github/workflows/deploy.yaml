@@ -176,8 +176,12 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
-      IMAGE_NAME: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/archie-458607/archie-backend/${{ github.sha }}
+      # This should match what Terraform expects for archie_mcp_image_uri
+      IMAGE_TO_PUSH: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}
       ENVIRONMENT: ${{ github.ref_name }}
+    # If you want to pass the exact pushed URI to Terraform (more robust)
+    # outputs:
+    #   image_uri: ${{ steps.tag_and_build_image.outputs.image_uri_with_sha }}
 
     steps:
       - name: Checkout Code
@@ -195,19 +199,23 @@ jobs:
 
       - name: Configure Docker for Artifact Registry
         run: |
-          gcloud auth configure-docker ${{ vars.GCP_REGION_CH }}-docker.pkg.dev --quiet
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker Image
+        id: tag_and_build_image
         run: |
-          docker build -t ${{ env.IMAGE_NAME }} -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
+          echo "Building and tagging image as: ${{ env.IMAGE_TO_PUSH }}"
+          docker build -t "${{ env.IMAGE_TO_PUSH }}" -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
+          # If using outputs:
+          # echo "image_uri_with_sha=${{ env.IMAGE_TO_PUSH }}" >> $GITHUB_OUTPUT
 
-      - name: Debug IMAGE_NAME
+      - name: Debug IMAGE_NAME (Corrected to IMAGE_TO_PUSH)
         run: |
-          echo "IMAGE_NAME is: ${{ env.IMAGE_NAME }}"
+          echo "IMAGE_TO_PUSH is: ${{ env.IMAGE_TO_PUSH }}"
 
       - name: Push Docker Image to Artifact Registry
         run: |
-          docker push ${{ env.IMAGE_NAME }}
+          docker push "${{ env.IMAGE_TO_PUSH }}"
 
 #     - name: Deploy to Cloud Run
 #       run: |
@@ -216,6 +224,8 @@ jobs:
 #           --region=${{ env.GCP_REGION }} \
 #           --project=${{ env.GCP_PROJECT_ID }} \
 #           --allow-unauthenticated # For simplicity in the lab.  Restrict in production.
+
+##### End of Build and Push Image #####
 
   deploy_infra:
     name: Deploy Infrastructure
