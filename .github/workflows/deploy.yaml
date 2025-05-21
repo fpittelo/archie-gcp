@@ -50,21 +50,20 @@ jobs:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
-      - name: Create Service Account (if not exists)
-        run: |
-          TERRAFORM_SA_NAME="archiefunct-dev-sa"  # Name Terraform will use
-          TERRAFORM_SA_EMAIL="${TERRAFORM_SA_NAME}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
-
-          if gcloud iam service-accounts describe $TERRAFORM_SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
-            echo "Service account $TERRAFORM_SA_EMAIL already exists (likely created by Terraform in a previous run). Skipping creation."
-          else
-            echo "Service account $TERRAFORM_SA_EMAIL does not exist. Creating..."
-            gcloud iam service-accounts create $TERRAFORM_SA_NAME \
-              --description="Service Account for Cloud Functions" \
-              --display-name="Cloud Functions SA" \
-              --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
-            echo "created=true" >> $GITHUB_OUTPUT
-          fi
+#     - name: Create Service Account (if not exists)
+#       run: |
+#         TERRAFORM_SA_NAME="archiefunct-dev-sa"  # Name Terraform will use
+#         TERRAFORM_SA_EMAIL="${TERRAFORM_SA_NAME}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+#          if gcloud iam service-accounts describe $TERRAFORM_SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+#           echo "Service account $TERRAFORM_SA_EMAIL already exists (likely created by Terraform in a previous run). Skipping creation."
+#         else
+#           echo "Service account $TERRAFORM_SA_EMAIL does not exist. Creating..."
+#           gcloud iam service-accounts create $TERRAFORM_SA_NAME \
+#             --description="Service Account for Cloud Functions" \
+#             --display-name="Cloud Functions SA" \
+#             --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
+#           echo "created=true" >> $GITHUB_OUTPUT
+#         fi
 
 #     - name: Grant Terraform SA permission Compute Service account
 #       run: |
