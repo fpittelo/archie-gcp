@@ -50,17 +50,16 @@ jobs:
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
-      - name: Create Service Account
-        id: create_sa
+      - name: Create Service Account (if not exists)
         run: |
-          SA_NAME="archiefunct-${{ github.ref_name }}-mcp-sa"
-          SA_EMAIL="${SA_NAME}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+          TERRAFORM_SA_NAME="archiefunct-dev-sa"  # Name Terraform will use
+          TERRAFORM_SA_EMAIL="${TERRAFORM_SA_NAME}@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
 
-          if gcloud iam service-accounts describe $SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
-            echo "Service account $SA_EMAIL already exists. Skipping creation."
-            echo "created=false" >> $GITHUB_OUTPUT
+          if gcloud iam service-accounts describe $TERRAFORM_SA_EMAIL --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+            echo "Service account $TERRAFORM_SA_EMAIL already exists (likely created by Terraform in a previous run). Skipping creation."
           else
-            gcloud iam service-accounts create $SA_NAME \
+            echo "Service account $TERRAFORM_SA_EMAIL does not exist. Creating..."
+            gcloud iam service-accounts create $TERRAFORM_SA_NAME \
               --description="Service Account for Cloud Functions" \
               --display-name="Cloud Functions SA" \
               --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
@@ -221,9 +220,8 @@ jobs:
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
-            -var="github_sha=${{ github.sha }}" \
-            -var="archiefunct_image_uri=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}" \
-            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
+            -var="github_sha=${{ github.sha }}"
+
 
   build_push_deploy_docker_image:
     name: Build and Push Docker Image
