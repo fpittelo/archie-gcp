@@ -45,7 +45,7 @@ variable "deployer_service_account_email" {
   type        = string
 }
 
-variable "archiefunct_image_uri" {
-  description = "The URI of the Docker image for the archiefunct service from Artifact Registry."
+variable "archie_mcp_image_uri" {
+  description = "The URI of the Docker image for the archie-mcp service from Artifact Registry."
   type        = string
 }
