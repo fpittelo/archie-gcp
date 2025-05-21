@@ -160,3 +160,38 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} \
             --location=${{ env.GCP_REGION_CH }} \
             --quiet || echo "Warning: Failed to delete repository 'archie-backend'. It might not be empty, not exist, or you lack permissions."
+
+  # Add this new job to the end of your jobs list in destroy.yaml
+
+  delete_terraform_state_bucket:
+    name: 4. Delete Terraform State GCS Bucket for ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [cleanup_artifact_registry_repository] # Ensure this runs last
+    if: success() # Only run if all previous dependent jobs were successful
+    environment: ${{ github.event.inputs.environment }} # Maintain environment context
+    
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Empty and Delete GCS Bucket for Terraform State
+        run: |
+          BUCKET_NAME_TO_DELETE="gs://${{ env.TF_STATE_BUCKET }}"
+          echo "Attempting to empty and delete GCS bucket: ${BUCKET_NAME_TO_DELETE}"
+          
+          # Empty the bucket. 
+          # The '--recursive' flag will delete all objects and versions.
+          # Adding '|| true' so that if the bucket is already empty or doesn't exist, the step doesn't fail the workflow.
+          gcloud storage rm --recursive "${BUCKET_NAME_TO_DELETE}" --project=${{ env.GCP_PROJECT_ID }} --quiet || echo "Bucket ${BUCKET_NAME_TO_DELETE} was empty or did not exist."
+          
+          # Delete the bucket itself
+          # Adding '|| true' for the same reason as above.
+          gcloud storage buckets delete "${BUCKET_NAME_TO_DELETE}" --project=${{ env.GCP_PROJECT_ID }} --quiet || echo "Bucket ${BUCKET_NAME_TO_DELETE} was already deleted or failed to delete (ensure it was empty)."
+          
+          echo "GCS bucket ${BUCKET_NAME_TO_DELETE} deletion process attempted."
