@@ -12,9 +12,9 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
   deletion_protection = false # Add this line
 
   template {
-    service_account = google_service_account.archiemcp_function_sa.email // Runtime SA
-    containers {
-      image = "us-docker.pkg.dev/cloudrun/container/hello" // Placeholder, will be replaced by source build
+    service_account = google_service_account.archiemcp_function_sa.email
+    containers { 
+      image = var.archie_mcp_image_uri // e.g., "europe-west6-docker.pkg.dev/archie-458607/archie-mcp-dev/archiefunct:latest"
       ports {
         container_port = 8080
       }
