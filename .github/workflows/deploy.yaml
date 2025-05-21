@@ -166,9 +166,60 @@ jobs:
             fi
           fi
 
+##### End of Terraform Backend Setup #####
+
+  build_and_push_image:
+    name: Build and Push Docker Image
+    needs: [prepare_backend]
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      IMAGE_NAME: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/archie-458607/archie-backend/${{ github.sha }}
+      ENVIRONMENT: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ vars.GCP_REGION_CH }}-docker.pkg.dev --quiet
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }} -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
+
+      - name: Debug IMAGE_NAME
+        run: |
+          echo "IMAGE_NAME is: ${{ env.IMAGE_NAME }}"
+
+      - name: Push Docker Image to Artifact Registry
+        run: |
+          docker push ${{ env.IMAGE_NAME }}
+
+#     - name: Deploy to Cloud Run
+#       run: |
+#         gcloud run deploy archie-mcp-${{ github.ref_name }} \
+#           --image=${{ env.IMAGE_NAME }} \
+#           --region=${{ env.GCP_REGION }} \
+#           --project=${{ env.GCP_PROJECT_ID }} \
+#           --allow-unauthenticated # For simplicity in the lab.  Restrict in production.
+
   deploy_infra:
     name: Deploy Infrastructure
-    needs: [prepare_backend]
+    needs: [build_and_push_image]
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
@@ -222,53 +273,3 @@ jobs:
             -var="github_sha=${{ github.sha }}" \
             -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend:${{ github.sha }}" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
-
-
-  build_push_deploy_docker_image:
-    name: Build and Push Docker Image
-    needs: [deploy_infra]
-    environment: ${{ github.ref_name }}
-    runs-on: ubuntu-latest
-    env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION_CH }}
-      IMAGE_NAME: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/archie-458607/archie-backend/${{ github.sha }}
-      ENVIRONMENT: ${{ github.ref_name }}
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        id: auth
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: Set up Cloud SDK
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: Configure Docker for Artifact Registry
-        run: |
-          gcloud auth configure-docker ${{ vars.GCP_REGION_CH }}-docker.pkg.dev --quiet
-
-      - name: Build Docker Image
-        run: |
-          docker build -t ${{ env.IMAGE_NAME }} -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
-
-      - name: Debug IMAGE_NAME
-        run: |
-          echo "IMAGE_NAME is: ${{ env.IMAGE_NAME }}"
-
-      - name: Push Docker Image to Artifact Registry
-        run: |
-          docker push ${{ env.IMAGE_NAME }}
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy archie-mcp-${{ github.ref_name }} \
-            --image=${{ env.IMAGE_NAME }} \
-            --region=${{ env.GCP_REGION }} \
-            --project=${{ env.GCP_PROJECT_ID }} \
-            --allow-unauthenticated # For simplicity in the lab.  Restrict in production.
