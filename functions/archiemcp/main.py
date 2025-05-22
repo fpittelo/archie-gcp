@@ -9,10 +9,10 @@ logging.basicConfig(level=logging.INFO)
 
 # Initialize Vertex AI SDK
 # These are automatically set in the Cloud Functions environment
-PROJECT_ID = os.environ.get("GCP_PROJECT")
-LOCATION = os.environ.get("GCP_REGION_CH") # This will be the function's region
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") # Standard Cloud Run env var
+LOCATION = os.environ.get("GOOGLE_CLOUD_REGION")    # Standard Cloud Run env var
 if not LOCATION:
-    LOCATION = os.environ.get("GCP_REGION_CH", "europe-west1") # Default to europe-west1 if not set
+    LOCATION = "europe-west1" # Default to a common region if GOOGLE_CLOUD_REGION is somehow not set
 
 # Model ID from environment variable, defaulting if not set
 MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-2.0-pro-exp-02-05")
