@@ -1,4 +1,6 @@
-import google.cloud.aiplatform as aiplatform
+# Change your imports at the top
+import vertexai  # Import the main vertexai namespace
+from vertexai.generative_models import GenerativeModel # Import GenerativeModel specifically
 import os
 import json
 import logging
@@ -7,8 +9,14 @@ from flask import Flask, request, jsonify
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 
-# Log the installed library version
-logging.info(f"Attempting to use google-cloud-aiplatform version: {aiplatform.__version__}")
+# Log the installed library version (still good to keep for future reference)
+try:
+    # To get the underlying google-cloud-aiplatform version
+    import google.cloud.aiplatform as aiplatform_version_check
+    logging.info(f"Underlying google-cloud-aiplatform version: {aiplatform_version_check.__version__}")
+except ImportError:
+    logging.warning("Could not import google.cloud.aiplatform for version check.")
+
 
 # ---- STARTUP ENVIRONMENT VARIABLE CHECK AND AI INITIALIZATION ----
 logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Manually Set Vars from Console) ----")
@@ -20,20 +28,21 @@ logging.info(f"Read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type
 logging.info(f"Read (manual) GCP_REGION_CH. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
 logging.info(f"Read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
 
-logging.info("---- Dumping ALL available environment variables from os.environ: ----")
-for key, value in os.environ.items():
-    logging.info(f"'{key}': '{value}'")
-logging.info("---- End of all available environment variables ----")
+# You can comment out the full env var dump now if you wish, or keep it for one more run
+# logging.info("---- Dumping ALL available environment variables from os.environ: ----")
+# for key, value in os.environ.items():
+#     logging.info(f"'{key}': '{value}'")
+# logging.info("---- End of all available environment variables ----")
 
 PROJECT_ID = raw_project_id_manual
 LOCATION = raw_location_ch_manual
 MODEL_ID = raw_model_id_manual
 
-# Fallbacks (though variables should be set)
+# Fallbacks
 if not MODEL_ID:
     MODEL_ID = "gemini-2.0-pro-exp-02-05"
 if not LOCATION:
-    LOCATION = "europe-west1"
+    LOCATION = "europe-west1" # Should be set from env, but as a last resort
 
 logging.info(f"Effective PROJECT_ID for AI init: '{PROJECT_ID}'")
 logging.info(f"Effective LOCATION for AI init: '{LOCATION}'")
@@ -42,15 +51,17 @@ logging.info(f"Effective MODEL_ID for AI init: '{MODEL_ID}'")
 gemini_model_instance = None # Initialize once
 if PROJECT_ID and LOCATION:
     try:
-        logging.info(f"Initializing Vertex AI SDK with project='{PROJECT_ID}', location='{LOCATION}'...")
-        aiplatform.init(project=PROJECT_ID, location=LOCATION)
-        logging.info("Vertex AI SDK initialized. Attempting to load GenerativeModel...")
-        gemini_model_instance = aiplatform.GenerativeModel(MODEL_ID) # This is where the AttributeError was
+        logging.info(f"Initializing Vertex AI with project='{PROJECT_ID}', location='{LOCATION}' using vertexai.init()...")
+        vertexai.init(project=PROJECT_ID, location=LOCATION) # Use vertexai.init()
+        logging.info("Vertex AI initialized via vertexai.init(). Attempting to load GenerativeModel...")
+        gemini_model_instance = GenerativeModel(MODEL_ID) # Use GenerativeModel directly after the new import
         logging.info(f"Vertex AI GenerativeModel '{MODEL_ID}' loaded successfully.")
-    except AttributeError as ae:
+    except AttributeError as ae: # Should ideally not happen with the new import
         logging.error(f"AttributeError during Vertex AI SDK usage: {ae}", exc_info=True)
-        # Log the version again here to correlate with the error
-        logging.error(f"google-cloud-aiplatform version at time of AttributeError: {aiplatform.__version__}")
+        try:
+            logging.error(f"google-cloud-aiplatform version at time of AttributeError: {aiplatform_version_check.__version__}")
+        except NameError:
+            logging.error("google-cloud-aiplatform version could not be determined for AttributeError.")
         gemini_model_instance = None
     except Exception as e:
         logging.error(f"General error initializing Vertex AI SDK or Model: {e}", exc_info=True)
