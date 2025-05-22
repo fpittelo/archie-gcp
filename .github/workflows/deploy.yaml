@@ -318,7 +318,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
-            -backend-config="prefix=terraform-state"
+            -backend-config="prefix=tfstate/${{ env.ENVIRONMENT }}"
         working-directory: infra/
 
       - name: Terraform Validate
