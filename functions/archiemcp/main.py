@@ -7,6 +7,31 @@ from flask import Flask, request, jsonify
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 
+# ---- START DEBUGGING BLOCK (Adjusted for new variable names) ----
+logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Auto-Injected Vars) ----")
+raw_google_cloud_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+raw_google_cloud_region = os.environ.get("GOOGLE_CLOUD_REGION")
+raw_gemini_model = os.environ.get("GEMINI_MODEL") # Still checking this custom one
+
+logging.info(f"Attempting to read GOOGLE_CLOUD_PROJECT. Value: '{raw_google_cloud_project}', Type: {type(raw_google_cloud_project)}")
+logging.info(f"Attempting to read GOOGLE_CLOUD_REGION. Value: '{raw_google_cloud_region}', Type: {type(raw_google_cloud_region)}")
+logging.info(f"Attempting to read GEMINI_MODEL. Value: '{raw_gemini_model}', Type: {type(raw_gemini_model)}")
+logging.info("---- END STARTUP ENVIRONMENT VARIABLE CHECK ----")
+
+# Your new variable assignments:
+PROJECT_ID = raw_google_cloud_project
+LOCATION = raw_google_cloud_region
+if not LOCATION:
+    LOCATION = "europe-west1"
+MODEL_ID = raw_gemini_model
+if not MODEL_ID:
+     MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-2.0-pro-exp-02-05") # Fallback just in case
+
+logging.info(f"Effective PROJECT_ID for AI init: '{PROJECT_ID}'")
+logging.info(f"Effective LOCATION for AI init: '{LOCATION}'")
+logging.info(f"Effective MODEL_ID for AI init: '{MODEL_ID}'")
+# ---- END DEBUGGING BLOCK ----
+
 # Initialize Vertex AI SDK
 # These are automatically set in the Cloud Functions environment
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") # Standard Cloud Run env var
