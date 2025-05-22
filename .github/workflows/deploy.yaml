@@ -237,8 +237,6 @@ jobs:
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
-
-      # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
       TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
@@ -274,6 +272,7 @@ jobs:
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
@@ -282,6 +281,8 @@ jobs:
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
             -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
+
+##### End of Build and Push Image #####
 
   deploy_frontend:
     name: Deploy Frontend
