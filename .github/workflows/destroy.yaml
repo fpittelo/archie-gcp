@@ -27,7 +27,7 @@ env:
 
 jobs:
   terraform_destroy_resources:
-    name: 1. Terraform Destroy GCP Resources for ${{ github.event.inputs.environment }}
+    name: Terraform Destroy ${{ github.event.inputs.environment }} GCP
     runs-on: ubuntu-latest
     # Use the input to select the GitHub Environment context
     # This allows access to environment-specific vars like GCP_ARTIFACT_IMAGE_NAME
@@ -55,7 +55,7 @@ jobs:
         run: |
           terraform init -upgrade \
             -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
-            -backend-config="prefix=terraform-state"
+            -backend-config="prefix=tfstate/${{ env.TARGET_ENVIRONMENT }}"
         working-directory: infra/
 
       - name: Terraform Plan Destroy (Optional Visibility)
@@ -91,7 +91,7 @@ jobs:
         working-directory: infra/
 
   cleanup_artifact_registry_images:
-    name: 2. Delete Docker Images for ${{ github.event.inputs.environment }}
+    name: Delete ${{ github.event.inputs.environment }} Docker Images
     runs-on: ubuntu-latest
     needs: [terraform_destroy_resources] # Run after Terraform destroy
     if: success() # Only run if the previous job was successful
@@ -130,7 +130,7 @@ jobs:
           fi
 
   cleanup_artifact_registry_repository:
-    name: 3. Delete Artifact Registry Repository for ${{ github.event.inputs.environment }}
+    name: Delete ${{ github.event.inputs.environment }} Artifact Registry Repository
     runs-on: ubuntu-latest
     needs: [cleanup_artifact_registry_images] # Run after images are deleted
     if: success() # Only run if image deletion was successful
@@ -164,7 +164,7 @@ jobs:
   # Add this new job to the end of your jobs list in destroy.yaml
 
   delete_terraform_state_bucket:
-    name: 4. Delete Terraform State GCS Bucket for ${{ github.event.inputs.environment }}
+    name: Delete Terraform ${{ github.event.inputs.environment }} Bucket
     runs-on: ubuntu-latest
     needs: [cleanup_artifact_registry_repository] # Ensure this runs last
     if: success() # Only run if all previous dependent jobs were successful

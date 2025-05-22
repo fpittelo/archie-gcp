@@ -237,8 +237,6 @@ jobs:
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_CH }}
-
-      # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
       TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
@@ -263,7 +261,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
-            -backend-config="prefix=terraform-state"
+            -backend-config="prefix=tfstate/${{ env.ENVIRONMENT }}"
         working-directory: infra/
 
       - name: Terraform Validate
@@ -274,6 +272,7 @@ jobs:
         working-directory: infra/
         run: |
           terraform apply -auto-approve \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
             -var="location=${{ env.GCP_REGION }}" \
@@ -281,5 +280,61 @@ jobs:
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
-            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}" \
-            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
+            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
+
+##### End of Build and Push Image #####
+
+  deploy_frontend:
+    name: Deploy Frontend
+    needs: [deploy_infra]
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      ENVIRONMENT: ${{ github.ref_name }}
+      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }} # Added for terraform init
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+            -backend-config="prefix=tfstate/${{ env.ENVIRONMENT }}"
+        working-directory: infra/
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: infra/
+
+      - name: Terraform Apply for Frontend
+        working-directory: infra/
+        run: |
+          terraform apply -auto-approve \
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="region=${{ env.GCP_REGION }}" \
+            -var="location=${{ env.GCP_REGION }}" \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var-file="${{ github.ref_name }}.tfvars" \
+            -var="github_workspace=${{ github.workspace }}" \
+            -var="github_sha=${{ github.sha }}" \
+            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"

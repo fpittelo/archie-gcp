@@ -10,34 +10,32 @@ variable "location" {
   type        = string
 }
 
-variable "tf_state_bucket" {
-  type = string
-}
-
 variable "storage_bucket" {
-  type = string
+  description = "The name of the GCS bucket for general storage (e.g., function source)."
+  type        = string
 }
 
 variable "region" {
   description = "The GCP region"
   type        = string
 }
-
 variable "environment" {
- type = string 
+  description = "The deployment environment (e.g., dev, staging, prod)."
+  type        = string
 }
 
 variable "cloudfunction" {
-  type = string
+  description = "Base name for the Cloud Function/Run service and related resources."
+  type        = string
 }
 
 variable "github_workspace" {
   description = "The value of the GITHUB_WORKSPACE environment variable."
   type        = string
 }
-
 variable "github_sha" {
-  type = string
+  description = "The GitHub commit SHA, used for tagging or versioning."
+  type        = string
 }
 
 variable "deployer_service_account_email" {
