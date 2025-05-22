@@ -7,29 +7,53 @@ from flask import Flask, request, jsonify
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 
-# ---- START DEBUGGING BLOCK (Adjusted for new variable names) ----
-logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Auto-Injected Vars) ----")
-raw_google_cloud_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-raw_google_cloud_region = os.environ.get("GOOGLE_CLOUD_REGION")
-raw_gemini_model = os.environ.get("GEMINI_MODEL") # Still checking this custom one
+# ---- START DEBUGGING BLOCK (Reverting to manually set names, adding FULL ENV DUMP) ----
+logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Manually Set Vars from Console) ----")
+# These are the names confirmed to be in your Cloud Run console screenshot for revision -00003-9vd
+raw_project_id_manual = os.environ.get("GCP_PROJECT")
+raw_location_ch_manual = os.environ.get("GCP_REGION_CH") # As per your screenshot
+raw_model_id_manual = os.environ.get("GEMINI_MODEL") # This one was working
 
-logging.info(f"Attempting to read GOOGLE_CLOUD_PROJECT. Value: '{raw_google_cloud_project}', Type: {type(raw_google_cloud_project)}")
-logging.info(f"Attempting to read GOOGLE_CLOUD_REGION. Value: '{raw_google_cloud_region}', Type: {type(raw_google_cloud_region)}")
-logging.info(f"Attempting to read GEMINI_MODEL. Value: '{raw_gemini_model}', Type: {type(raw_gemini_model)}")
-logging.info("---- END STARTUP ENVIRONMENT VARIABLE CHECK ----")
+logging.info(f"Attempting to read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type: {type(raw_project_id_manual)}")
+logging.info(f"Attempting to read (manual) GCP_REGION_CH. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
+logging.info(f"Attempting to read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
 
-# Your new variable assignments:
-PROJECT_ID = raw_google_cloud_project
-LOCATION = raw_google_cloud_region
+logging.info("---- Dumping ALL available environment variables from os.environ: ----")
+for key, value in os.environ.items():
+    logging.info(f"'{key}': '{value}'")
+logging.info("---- End of all available environment variables ----")
+# ---- END DEBUGGING BLOCK ----
+
+PROJECT_ID = raw_project_id_manual
+LOCATION = raw_location_ch_manual
+MODEL_ID = raw_model_id_manual
+
+# Fallback for MODEL_ID if it was somehow None (though it was being read)
+if not MODEL_ID:
+    MODEL_ID = "gemini-2.0-pro-exp-02-05"
+
+# Fallback for LOCATION if it was somehow None
 if not LOCATION:
     LOCATION = "europe-west1"
-MODEL_ID = raw_gemini_model
-if not MODEL_ID:
-     MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-2.0-pro-exp-02-05") # Fallback just in case
+
 
 logging.info(f"Effective PROJECT_ID for AI init: '{PROJECT_ID}'")
 logging.info(f"Effective LOCATION for AI init: '{LOCATION}'")
 logging.info(f"Effective MODEL_ID for AI init: '{MODEL_ID}'")
+
+gemini_model_instance = None
+if PROJECT_ID and LOCATION:
+    try:
+        aiplatform.init(project=PROJECT_ID, location=LOCATION)
+        gemini_model_instance = aiplatform.GenerativeModel(MODEL_ID)
+        logging.info(f"Vertex AI SDK initialized successfully for project {PROJECT_ID} in {LOCATION} using model {MODEL_ID}.")
+    except Exception as e:
+        logging.error(f"Error initializing Vertex AI SDK: {e}", exc_info=True)
+        gemini_model_instance = None
+else:
+    # Update this log message to be accurate
+    logging.error("Manually set GCP_PROJECT or GCP_REGION_CH environment variables were NOT resolved correctly by Python. SDK not initialized.")
+    logging.error(f"Values at point of failure: PROJECT_ID ('{PROJECT_ID}') is {bool(PROJECT_ID)}, LOCATION ('{LOCATION}') is {bool(LOCATION)}")
 # ---- END DEBUGGING BLOCK ----
 
 # Initialize Vertex AI SDK
