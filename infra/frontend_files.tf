@@ -19,7 +19,7 @@ resource "google_storage_bucket_object" "frontend_files" {
   for_each = fileset("${var.github_workspace}/frontend/", "**/*") # Get all files recursively
 
   name         = "frontend/${each.value}"                             # Destination path: frontend/path/to/file.ext
-  bucket       = var.storage_bucket                                   # Bucket name from variables (e.g., dev.tfvars)
+  bucket       = google_storage_bucket.archiemcp_bucket.name                                   # Bucket name from variables (e.g., dev.tfvars)
   source       = "${var.github_workspace}/frontend/${each.value}"     # Full path to the local source file
   content_type = lookup(local.mime_types, regex("\\.([^.]+)$", each.value)[0], "application/octet-stream") # Set Content-Type
 }
