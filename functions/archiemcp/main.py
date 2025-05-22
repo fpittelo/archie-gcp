@@ -7,6 +7,9 @@ from flask import Flask, request, jsonify
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 
+# Log the installed library version
+logging.info(f"Attempting to use google-cloud-aiplatform version: {aiplatform.__version__}")
+
 # ---- START DEBUGGING BLOCK (Reverting to manually set names, adding FULL ENV DUMP) ----
 logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Manually Set Vars from Console) ----")
 # These are the names confirmed to be in your Cloud Run console screenshot for revision -00003-9vd
