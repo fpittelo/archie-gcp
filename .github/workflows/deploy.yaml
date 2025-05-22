@@ -281,5 +281,42 @@ jobs:
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
-            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}" \
+            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
+
+  deploy_frontend:
+    name: Deploy Frontend
+    needs: [deploy_infra]
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      ENVIRONMENT: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Get Bucket Name from Terraform Output
+        id: get_bucket_name
+        run: |
+          echo "bucket_name=$(terraform output -raw storage_bucket)" >> $GITHUB_OUTPUT
+        working-directory: infra/
+
+      - name: Sync Frontend Files to Bucket
+        run: |
+          gsutil -m rsync -r frontend/ gs://${{ steps.get_bucket_name.outputs.bucket_name }}
+
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
