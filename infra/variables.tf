@@ -10,11 +10,6 @@ variable "location" {
   type        = string
 }
 
-variable "tf_state_bucket" {
-  description = "The name of the GCS bucket used for Terraform state storage."
-  type        = string
-}
-
 variable "storage_bucket" {
   description = "The name of the GCS bucket for general storage (e.g., function source)."
   type        = string
