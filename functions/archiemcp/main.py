@@ -10,76 +10,55 @@ logging.basicConfig(level=logging.INFO)
 # Log the installed library version
 logging.info(f"Attempting to use google-cloud-aiplatform version: {aiplatform.__version__}")
 
-# ---- START DEBUGGING BLOCK (Reverting to manually set names, adding FULL ENV DUMP) ----
+# ---- STARTUP ENVIRONMENT VARIABLE CHECK AND AI INITIALIZATION ----
 logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Manually Set Vars from Console) ----")
-# These are the names confirmed to be in your Cloud Run console screenshot for revision -00003-9vd
 raw_project_id_manual = os.environ.get("GCP_PROJECT")
-raw_location_ch_manual = os.environ.get("GCP_REGION_CH") # As per your screenshot
-raw_model_id_manual = os.environ.get("GEMINI_MODEL") # This one was working
+raw_location_ch_manual = os.environ.get("GCP_REGION_CH")
+raw_model_id_manual = os.environ.get("GEMINI_MODEL")
 
-logging.info(f"Attempting to read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type: {type(raw_project_id_manual)}")
-logging.info(f"Attempting to read (manual) GCP_REGION_CH. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
-logging.info(f"Attempting to read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
+logging.info(f"Read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type: {type(raw_project_id_manual)}")
+logging.info(f"Read (manual) GCP_REGION_CH. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
+logging.info(f"Read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
 
 logging.info("---- Dumping ALL available environment variables from os.environ: ----")
 for key, value in os.environ.items():
     logging.info(f"'{key}': '{value}'")
 logging.info("---- End of all available environment variables ----")
-# ---- END DEBUGGING BLOCK ----
 
 PROJECT_ID = raw_project_id_manual
 LOCATION = raw_location_ch_manual
 MODEL_ID = raw_model_id_manual
 
-# Fallback for MODEL_ID if it was somehow None (though it was being read)
+# Fallbacks (though variables should be set)
 if not MODEL_ID:
     MODEL_ID = "gemini-2.0-pro-exp-02-05"
-
-# Fallback for LOCATION if it was somehow None
 if not LOCATION:
     LOCATION = "europe-west1"
-
 
 logging.info(f"Effective PROJECT_ID for AI init: '{PROJECT_ID}'")
 logging.info(f"Effective LOCATION for AI init: '{LOCATION}'")
 logging.info(f"Effective MODEL_ID for AI init: '{MODEL_ID}'")
 
-gemini_model_instance = None
+gemini_model_instance = None # Initialize once
 if PROJECT_ID and LOCATION:
     try:
+        logging.info(f"Initializing Vertex AI SDK with project='{PROJECT_ID}', location='{LOCATION}'...")
         aiplatform.init(project=PROJECT_ID, location=LOCATION)
-        gemini_model_instance = aiplatform.GenerativeModel(MODEL_ID)
-        logging.info(f"Vertex AI SDK initialized successfully for project {PROJECT_ID} in {LOCATION} using model {MODEL_ID}.")
+        logging.info("Vertex AI SDK initialized. Attempting to load GenerativeModel...")
+        gemini_model_instance = aiplatform.GenerativeModel(MODEL_ID) # This is where the AttributeError was
+        logging.info(f"Vertex AI GenerativeModel '{MODEL_ID}' loaded successfully.")
+    except AttributeError as ae:
+        logging.error(f"AttributeError during Vertex AI SDK usage: {ae}", exc_info=True)
+        # Log the version again here to correlate with the error
+        logging.error(f"google-cloud-aiplatform version at time of AttributeError: {aiplatform.__version__}")
+        gemini_model_instance = None
     except Exception as e:
-        logging.error(f"Error initializing Vertex AI SDK: {e}", exc_info=True)
+        logging.error(f"General error initializing Vertex AI SDK or Model: {e}", exc_info=True)
         gemini_model_instance = None
 else:
-    # Update this log message to be accurate
-    logging.error("Manually set GCP_PROJECT or GCP_REGION_CH environment variables were NOT resolved correctly by Python. SDK not initialized.")
+    logging.error("Manually set GCP_PROJECT or GCP_REGION_CH were NOT resolved by Python. SDK not initialized.")
     logging.error(f"Values at point of failure: PROJECT_ID ('{PROJECT_ID}') is {bool(PROJECT_ID)}, LOCATION ('{LOCATION}') is {bool(LOCATION)}")
-# ---- END DEBUGGING BLOCK ----
-
-# Initialize Vertex AI SDK
-# These are automatically set in the Cloud Functions environment
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") # Standard Cloud Run env var
-LOCATION = os.environ.get("GOOGLE_CLOUD_REGION")    # Standard Cloud Run env var
-if not LOCATION:
-    LOCATION = "europe-west1" # Default to a common region if GOOGLE_CLOUD_REGION is somehow not set
-
-# Model ID from environment variable, defaulting if not set
-MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-2.0-pro-exp-02-05")
-
-gemini_model_instance = None
-if PROJECT_ID and LOCATION:
-    try:
-        aiplatform.init(project=PROJECT_ID, location=LOCATION) # Initialize with function's location for Vertex AI client
-        gemini_model_instance = aiplatform.GenerativeModel(MODEL_ID)
-        logging.info(f"Vertex AI SDK initialized successfully for project {PROJECT_ID} in {LOCATION} using model {MODEL_ID}.")
-    except Exception as e:
-        logging.error(f"Error initializing Vertex AI SDK: {e}", exc_info=True)
-        gemini_model_instance = None # Ensure it's None if initialization fails
-else:
-    logging.error("GCP_PROJECT or GCP_REGION environment variables not set internally. Vertex AI SDK not initialized.")
+# ---- END INITIALIZATION ----
 
 app = Flask(__name__)
 
