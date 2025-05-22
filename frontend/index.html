@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Archie Query Page</title>
+
+    <link rel="icon" type="image/png" sizes="228x228" href="favicons/favicon-228.png">
+    <link rel="icon" type="image/png" sizes="180x180" href="favicons/favicon-180.png">
+    <link rel="icon" type="image/png" sizes="152x152" href="favicons/favicon-152.png">
+    <link rel="icon" type="image/png" sizes="144x144" href="favicons/favicon-144.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="favicons/favicon-128.png">
+    <link rel="icon" type="image/png" sizes="120x120" href="favicons/favicon-120.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="favicons/favicon-96.png">
+    <link rel="icon" type="image/png" sizes="76x76" href="favicons/favicon-76.png">
+    <link rel="icon" type="image/png" sizes="57x57" href="favicons/favicon-57.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
+    <link rel="manifest" href="favicons/site.webmanifest">
+    <link rel="mask-icon" href="favicons/safari-pinned-tab.svg" color="#e30713">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#e30713">
+
+    <link rel="stylesheet" href="css/vendors.min.css">
+    <link rel="stylesheet" href="css/elements.min.css">
+    <link rel="stylesheet" href="css/app.css">
+
+</head>
+<body>
+
+    <header class="header header-light">
+        <div class="container-grid">
+            <div class="drawer">
+                <a href="https://www.epfl.ch" aria-label="EPFL homepage" class="drawer-link">
+                    <span class="text">Go to EPFL home</span>
+                </a>
+                <button class="drawer-toggle" aria-expanded="false" aria-controls="drawer-content" type="button">
+                    <svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="#icon-chevron-right"></use></svg>
+                    <span class="sr-only">Toggle navigation</span>
+                </button>
+            </div>
+            <div class="header-light-content">
+                 <a href="/" class="logo" title="Archie Home">
+                    <img src="https://www.epfl.ch/wp-content/themes/epfl-theme/assets/svg/epfl-logo.svg" alt="EPFL logo">
+                </a>
+                <p class="site-title"><a href="/">Archie</a></p>
+                </div>
+        </div>
+    </header>
+
+    <main class="main-container container-grid" role="main" id="main">
+        <div class="container pt-5 pb-5"> <h1>Ask Archie</h1>
+            <p class="lead">Enter your query below to get a response from Gemini.</p>
+
+            <form id="query-form" class="mt-4">
+                <div class="form-group">
+                    <label for="query-input">Your Query</label>
+                    <textarea class="form-control" id="query-input" name="query" rows="3" placeholder="e.g., What is the EPFL style guide?"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Send Query</button>
+            </form>
+
+            <div id="response-area" class="mt-5" style="display:none;">
+                <h2>Response</h2>
+                <pre><code id="gemini-response"></code></pre>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer footer-light pt-5 pb-3 bg-gray-100">
+        <div class="container-grid">
+            <div class="footer-legal">
+                <div>
+                    <p>&copy; EPFL 2024. All rights reserved.</p>
+                </div>
+                <div class="footer-legal-links">
+                    <a href="https://www.epfl.ch/about/overview/fr/reglements-et-directives/" target="_blank" rel="noopener">Accessibility</a>
+                    <a href="https://go.epfl.ch/privacy-policy" target="_blank" rel="noopener">Privacy policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/vendors.min.js"></script>
+    <script src="js/elements.min.js"></script>
+    <script>
+        // Basic JS to handle form submission and display response (placeholder)
+        // You will expand this to make an API call to your Cloud Run backend
+        document.getElementById('query-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const query = document.getElementById('query-input').value;
+            const responseArea = document.getElementById('response-area');
+            const geminiResponseElement = document.getElementById('gemini-response');
+
+            // Show response area
+            responseArea.style.display = 'block';
+            geminiResponseElement.textContent = 'Fetching response for: ' + query + '...';
+
+            // Here you would make an API call to your backend
+            // For now, just a placeholder:
+            setTimeout(() => {
+                geminiResponseElement.textContent = 'This is a placeholder response from Gemini for query: "' + query + '"';
+            }, 1500);
+        });
+    </script>
+
+</body>
+</html>
