@@ -18,6 +18,21 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
       ports {
         container_port = 8080
       }
+      
+      env {
+        name  = "GCP_PROJECT"
+        value = var.project_id # This 'var.project_id' is a Terraform variable
+      }
+      env {
+        name  = "GCP_REGION_CH"
+        value = var.region # This 'var.region' is a Terraform variable, ensure it gets the correct region e.g. europe-west6
+      }
+      env {
+        name  = "GEMINI_MODEL"
+        value = var.gemini_model_name # You'll need to define/pass this Terraform variable too
+                                     # e.g., "gemini-2.0-pro-exp-02-05" or pass from GitHub Actions
+      }
+
       resources {
         limits = {
           cpu    = "1000m"

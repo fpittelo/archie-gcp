@@ -47,3 +47,8 @@ variable "archie_mcp_image_uri" {
   description = "The URI of the Docker image for the archie-mcp service from Artifact Registry."
   type        = string
 }
+
+variable "gemini_model_name" {
+  description = "The name of the Gemini model to be used."
+  type        = string
+}
