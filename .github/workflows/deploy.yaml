@@ -274,7 +274,7 @@ jobs:
           terraform apply -auto-approve \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
+            -var="region=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
@@ -330,8 +330,7 @@ jobs:
           terraform apply -auto-approve \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
-            -var="location=${{ env.GCP_REGION }}" \
+            -var="region=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
