@@ -28,11 +28,6 @@ logging.info(f"Read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type
 logging.info(f"Read (manual) GCP_REGION_EU. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
 logging.info(f"Read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
 
-# You can comment out the full env var dump now if you wish, or keep it for one more run
-# logging.info("---- Dumping ALL available environment variables from os.environ: ----")
-# for key, value in os.environ.items():
-#     logging.info(f"'{key}': '{value}'")
-# logging.info("---- End of all available environment variables ----")
 
 PROJECT_ID = raw_project_id_manual
 LOCATION = raw_location_ch_manual
