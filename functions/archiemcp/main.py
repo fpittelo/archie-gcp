@@ -35,7 +35,7 @@ MODEL_ID = raw_model_id_manual
 
 # Fallbacks
 if not MODEL_ID:
-    MODEL_ID = "gemini-2.0-pro-exp-02-05"
+    MODEL_ID = "gemini-2.0-flash-001"
 if not LOCATION:
     LOCATION = "europe-west1" # Should be set from env, but as a last resort
 
