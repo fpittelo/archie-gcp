@@ -65,7 +65,6 @@ jobs:
           terraform plan -destroy \
             -var="project_id=${{ env.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION_EU }}" \
-            -var="location=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.TARGET_ENVIRONMENT }}" \
             -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
@@ -81,7 +80,6 @@ jobs:
           terraform destroy -auto-approve \
             -var="project_id=${{ env.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION_EU }}" \
-            -var="location=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.TARGET_ENVIRONMENT }}" \
             -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
