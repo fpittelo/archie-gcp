@@ -30,23 +30,9 @@
 <body>
 
     <header class="header header-light">
-        <div class="container-grid">
-            <div class="drawer">
-                <a href="https://www.epfl.ch" aria-label="EPFL homepage" class="drawer-link">
-                    <span class="text">Go to EPFL home</span>
-                </a>
-                <button class="drawer-toggle" aria-expanded="false" aria-controls="drawer-content" type="button">
-                    <svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="#icon-chevron-right"></use></svg>
-                    <span class="sr-only">Toggle navigation</span>
-                </button>
-            </div>
-            <div class="header-light-content">
-                 <a href="/" class="logo" title="Archie Home">
-                    <img src="https://www.epfl.ch/wp-content/themes/epfl-theme/assets/svg/epfl-logo.svg" alt="EPFL logo">
-                </a>
-                <p class="site-title"><a href="/">Archie</a></p>
-                </div>
-        </div>
+        <a class="logo" href="https://www.epfl.ch/en/">
+		<img src="https://www.epfl.ch/wp-content/themes/wp-theme-2018/assets/svg/epfl-logo.svg" alt="Logo EPFL, École polytechnique fédérale de Lausanne" class="img-fluid">
+	</a>
     </header>
 
     <main class="main-container container-grid" role="main" id="main">
@@ -86,23 +72,54 @@
     <script src="js/vendors.min.js"></script>
     <script src="js/elements.min.js"></script>
     <script>
-        // Basic JS to handle form submission and display response (placeholder)
-        // You will expand this to make an API call to your Cloud Run backend
-        document.getElementById('query-form').addEventListener('submit', function(event) {
+        document.getElementById('query-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             const query = document.getElementById('query-input').value;
             const responseArea = document.getElementById('response-area');
             const geminiResponseElement = document.getElementById('gemini-response');
 
+            // The URL of your Cloud Run service for the 'dev' environment
+            // For other environments (qa, main), this URL would need to change.
+            // Consider making this dynamic if deploying to multiple environments from the same frontend code.
+            const backendUrl = 'https://archie-mcp-dev-851493899554.europe-west1.run.app/';
+
             // Show response area
             responseArea.style.display = 'block';
-            geminiResponseElement.textContent = 'Fetching response for: ' + query + '...';
+            geminiResponseElement.textContent = 'Thinking...';
 
-            // Here you would make an API call to your backend
-            // For now, just a placeholder:
-            setTimeout(() => {
-                geminiResponseElement.textContent = 'This is a placeholder response from Gemini for query: "' + query + '"';
-            }, 1500);
+            if (!query.trim()) {
+                geminiResponseElement.textContent = 'Please enter a question.';
+                return;
+            }
+
+            try {
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: query }),
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP error! status: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage += `, message: ${errorData.error || 'Unknown server error'}`;
+                    } catch (e) {
+                        // If parsing error JSON fails, use the text response
+                        errorMessage += `, message: ${await response.text()}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                geminiResponseElement.textContent = data.answer || 'No answer received from Archie.';
+
+            } catch (error) {
+                console.error('Error querying Archie:', error);
+                geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
+            }
         });
     </script>
 

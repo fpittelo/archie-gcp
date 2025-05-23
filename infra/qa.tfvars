@@ -1,6 +1,6 @@
 environment         = "qa"
 project_id          = "archie-458607"
-location            = "europe-west6"
-region              = "europe-west6"
+region              = "europe-west1"
 storage_bucket      = "archiemcp-qa"
 cloudfunction       = "archie-mcp-qa"
+gemini_model_name   = "gemini-2.0-flash-001"

@@ -21,7 +21,7 @@ env:
   GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }} # Service account for GHA
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION_CH: ${{ vars.GCP_REGION_CH }} # Ensure this is a global var or defined per GH env
+  GCP_REGION_EU: ${{ vars.GCP_REGION_EU }} # Ensure this is a global var or defined per GH env
   TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
   # GCP_ARTIFACT_IMAGE_NAME will be pulled from GitHub environment vars per job
 
@@ -64,13 +64,13 @@ jobs:
           echo "Using Artifact Image Name from GitHub Environment Var: ${{ vars.GCP_ARTIFACT_IMAGE_NAME }}"
           terraform plan -destroy \
             -var="project_id=${{ env.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION_CH }}" \
-            -var="location=${{ env.GCP_REGION_CH }}" \
+            -var="region=${{ env.GCP_REGION_EU }}" \
+            -var="location=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.TARGET_ENVIRONMENT }}" \
             -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=destroyplaceholder" \
-            -var="archie_mcp_image_uri=${{ env.GCP_REGION_CH }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
+            -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
 
@@ -80,13 +80,13 @@ jobs:
           echo "Using Artifact Image Name from GitHub Environment Var for TF: ${{ vars.GCP_ARTIFACT_IMAGE_NAME }}"
           terraform destroy -auto-approve \
             -var="project_id=${{ env.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION_CH }}" \
-            -var="location=${{ env.GCP_REGION_CH }}" \
+            -var="region=${{ env.GCP_REGION_EU }}" \
+            -var="location=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.TARGET_ENVIRONMENT }}" \
             -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=destroyplaceholder" \
-            -var="archie_mcp_image_uri=${{ env.GCP_REGION_CH }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
+            -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
         working-directory: infra/
 
@@ -111,7 +111,7 @@ jobs:
       - name: Delete Docker Images from Artifact Registry
         run: |
           # vars.GCP_ARTIFACT_IMAGE_NAME is resolved from the GitHub Environment context
-          TARGET_IMAGE_BASE_URI="${{ env.GCP_REGION_CH }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}"
+          TARGET_IMAGE_BASE_URI="${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}"
           echo "Attempting to delete all tags for image: ${TARGET_IMAGE_BASE_URI}"
 
           IMAGE_VERSIONS_JSON=$(gcloud artifacts docker images list "${TARGET_IMAGE_BASE_URI}" --include-tags --format=json --project=${{ env.GCP_PROJECT_ID }})
@@ -158,7 +158,7 @@ jobs:
           # For now, this will attempt to delete 'archie-backend'.
           gcloud artifacts repositories delete archie-backend \
             --project=${{ env.GCP_PROJECT_ID }} \
-            --location=${{ env.GCP_REGION_CH }} \
+            --location=${{ env.GCP_REGION_EU }} \
             --quiet || echo "Warning: Failed to delete repository 'archie-backend'. It might not be empty, not exist, or you lack permissions."
 
   # Add this new job to the end of your jobs list in destroy.yaml

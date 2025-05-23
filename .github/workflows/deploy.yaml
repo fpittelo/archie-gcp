@@ -32,7 +32,7 @@ jobs:
       GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}
       GCP_COMPUTE_SERVICE_ACCOUNT: ${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
-      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      GCP_REGION: ${{ vars.GCP_REGION_EU }}
 
       # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
       TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
@@ -114,11 +114,11 @@ jobs:
       - name: Create Artifact Registry Repository
         run: |
           REPO_NAME="archie-backend"
-          if ! gcloud artifacts repositories describe $REPO_NAME --location=${{ vars.GCP_REGION_CH }} --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+          if ! gcloud artifacts repositories describe $REPO_NAME --location=${{ vars.GCP_REGION_EU }} --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
             echo "Artifact Registry repository $REPO_NAME does not exist. Creating..."
             gcloud artifacts repositories create $REPO_NAME \
               --repository-format=docker \
-              --location=${{ vars.GCP_REGION_CH }} \
+              --location=${{ vars.GCP_REGION_EU }} \
             --project=${{ secrets.GCP_PROJECT_ID }}
           else 
             echo "Artifact Registry repository $REPO_NAME already exists."
@@ -135,14 +135,14 @@ jobs:
           # Using env variables set at the job level (except for REGION, directly from vars)
           BUCKET_NAME="${{ env.TF_STATE_BUCKET }}"
           PROJECT_ID="${{ env.GCP_PROJECT_ID }}"
-          # Accessing vars.GCP_REGION_CH directly here as env.GCP_REGION was unstable in previous logs for this step
-          REGION="${{ vars.GCP_REGION_CH }}"
+          # Accessing vars.GCP_REGION_EU directly here as env.GCP_REGION was unstable in previous logs for this step
+          REGION="${{ vars.GCP_REGION_EU }}"
 
           # Debugging output to check variable values (Recommended for troubleshooting)
           echo "--- Debugging Bucket Creation Variables ---"
           echo "Bucket Name: ${BUCKET_NAME}"
           echo "Project ID: ${PROJECT_ID}"
-          echo "Region from vars.GCP_REGION_CH: ${{ vars.GCP_REGION_CH }}" # Print raw vars context value
+          echo "Region from vars.GCP_REGION_EU: ${{ vars.GCP_REGION_EU }}" # Print raw vars context value
           echo "Region shell variable value: ${REGION}" # Print the value assigned to the shell variable
           echo "------------------------------------------"
 
@@ -175,10 +175,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      GCP_REGION: ${{ vars.GCP_REGION_EU }}
       GCP_ARTIFACT_IMAGE_NAME: ${{ vars.GCP_ARTIFACT_IMAGE_NAME }}
       # This should match what Terraform expects for archie_mcp_image_uri
-      IMAGE_TO_PUSH: ${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}
+      IMAGE_TO_PUSH: ${{ vars.GCP_REGION_EU }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}
       ENVIRONMENT: ${{ github.ref_name }}
     # If you want to pass the exact pushed URI to Terraform (more robust) outputs:
     #   image_uri: ${{ steps.tag_and_build_image.outputs.image_uri_with_sha }}
@@ -236,7 +236,7 @@ jobs:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      GCP_REGION: ${{ vars.GCP_REGION_EU }}
       TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
@@ -274,13 +274,12 @@ jobs:
           terraform apply -auto-approve \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
-            -var="location=${{ env.GCP_REGION }}" \
+            -var="region=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
-            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
+            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_EU }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
 
 ##### End of Build and Push Image #####
 
@@ -293,7 +292,7 @@ jobs:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION_CH }}
+      GCP_REGION: ${{ vars.GCP_REGION_EU }}
       ENVIRONMENT: ${{ github.ref_name }}
       TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }} # Added for terraform init
 
@@ -331,10 +330,9 @@ jobs:
           terraform apply -auto-approve \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
-            -var="location=${{ env.GCP_REGION }}" \
+            -var="region=${{ env.GCP_REGION_EU }}" \
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=${{ github.sha }}" \
-            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_CH }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
+            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_EU }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
