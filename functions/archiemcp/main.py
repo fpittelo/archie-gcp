@@ -21,11 +21,11 @@ except ImportError:
 # ---- STARTUP ENVIRONMENT VARIABLE CHECK AND AI INITIALIZATION ----
 logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Manually Set Vars from Console) ----")
 raw_project_id_manual = os.environ.get("GCP_PROJECT")
-raw_location_ch_manual = os.environ.get("GCP_REGION_CH")
+raw_location_ch_manual = os.environ.get("GCP_REGION_EU")
 raw_model_id_manual = os.environ.get("GEMINI_MODEL")
 
 logging.info(f"Read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type: {type(raw_project_id_manual)}")
-logging.info(f"Read (manual) GCP_REGION_CH. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
+logging.info(f"Read (manual) GCP_REGION_EU. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
 logging.info(f"Read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
 
 # You can comment out the full env var dump now if you wish, or keep it for one more run
@@ -67,7 +67,7 @@ if PROJECT_ID and LOCATION:
         logging.error(f"General error initializing Vertex AI SDK or Model: {e}", exc_info=True)
         gemini_model_instance = None
 else:
-    logging.error("Manually set GCP_PROJECT or GCP_REGION_CH were NOT resolved by Python. SDK not initialized.")
+    logging.error("Manually set GCP_PROJECT or GCP_REGION_EU were NOT resolved by Python. SDK not initialized.")
     logging.error(f"Values at point of failure: PROJECT_ID ('{PROJECT_ID}') is {bool(PROJECT_ID)}, LOCATION ('{LOCATION}') is {bool(LOCATION)}")
 # ---- END INITIALIZATION ----
 

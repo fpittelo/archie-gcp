@@ -8,7 +8,7 @@ resource "google_service_account" "archiemcp_function_sa" {
 resource "google_cloud_run_v2_service" "archiemcp_service" {
   name     = var.cloudfunction // e.g., "archiefunct-dev"
   project  = var.project_id
-  location = var.location 
+  location = var.region 
   deletion_protection = false # Add this line
 
   template {
@@ -24,7 +24,7 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
         value = var.project_id # This 'var.project_id' is a Terraform variable
       }
       env {
-        name  = "GCP_REGION_CH"
+        name  = "GCP_REGION_EU"
         value = var.region # This 'var.region' is a Terraform variable, ensure it gets the correct region e.g. europe-west6
       }
       env {
@@ -57,7 +57,7 @@ resource "google_cloud_run_v2_service_iam_member" "allow_unauthenticated" {
 resource "google_storage_bucket" "archiemcp_bucket" {
   name                        = var.storage_bucket
   project                     = var.project_id
-  location                    = var.location
+  location                    = var.region
   
   uniform_bucket_level_access = true
   force_destroy = true

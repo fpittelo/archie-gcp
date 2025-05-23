@@ -1,6 +1,5 @@
 environment             = "dev"
 project_id              = "archie-458607"
-location                = "europe-west1"
 region                  = "europe-west1"
 storage_bucket          = "archiemcp-dev"
 cloudfunction           = "archie-mcp-dev"

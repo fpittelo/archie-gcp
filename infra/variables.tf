@@ -5,10 +5,10 @@ variable "project_id" {
     type        = string
 }
 
-variable "location" {
-  description = "Resource location"
-  type        = string
-}
+#variable "location" {
+# description = "Resource location"
+# type        = string
+#}
 
 variable "storage_bucket" {
   description = "The name of the GCS bucket for general storage (e.g., function source)."
