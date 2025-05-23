@@ -1,4 +1,6 @@
-import google.cloud.aiplatform as aiplatform
+# Change your imports at the top
+import vertexai  # Import the main vertexai namespace
+from vertexai.generative_models import GenerativeModel # Import GenerativeModel specifically
 import os
 import json
 import logging
@@ -7,27 +9,62 @@ from flask import Flask, request, jsonify
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 
-# Initialize Vertex AI SDK
-# These are automatically set in the Cloud Functions environment
-PROJECT_ID = os.environ.get("GCP_PROJECT")
-LOCATION = os.environ.get("GCP_REGION_CH") # This will be the function's region
+# Log the installed library version (still good to keep for future reference)
+try:
+    # To get the underlying google-cloud-aiplatform version
+    import google.cloud.aiplatform as aiplatform_version_check
+    logging.info(f"Underlying google-cloud-aiplatform version: {aiplatform_version_check.__version__}")
+except ImportError:
+    logging.warning("Could not import google.cloud.aiplatform for version check.")
+
+
+# ---- STARTUP ENVIRONMENT VARIABLE CHECK AND AI INITIALIZATION ----
+logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Manually Set Vars from Console) ----")
+raw_project_id_manual = os.environ.get("GCP_PROJECT")
+raw_location_ch_manual = os.environ.get("GCP_REGION_EU")
+raw_model_id_manual = os.environ.get("GEMINI_MODEL")
+
+logging.info(f"Read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type: {type(raw_project_id_manual)}")
+logging.info(f"Read (manual) GCP_REGION_EU. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
+logging.info(f"Read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
+
+
+PROJECT_ID = raw_project_id_manual
+LOCATION = raw_location_ch_manual
+MODEL_ID = raw_model_id_manual
+
+# Fallbacks
+if not MODEL_ID:
+    MODEL_ID = "gemini-2.0-flash-001"
 if not LOCATION:
-    LOCATION = os.environ.get("GCP_REGION_CH", "europe-west1") # Default to europe-west1 if not set
+    LOCATION = "europe-west1" # Should be set from env, but as a last resort
 
-# Model ID from environment variable, defaulting if not set
-MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-2.0-pro-exp-02-05")
+logging.info(f"Effective PROJECT_ID for AI init: '{PROJECT_ID}'")
+logging.info(f"Effective LOCATION for AI init: '{LOCATION}'")
+logging.info(f"Effective MODEL_ID for AI init: '{MODEL_ID}'")
 
-gemini_model_instance = None
+gemini_model_instance = None # Initialize once
 if PROJECT_ID and LOCATION:
     try:
-        aiplatform.init(project=PROJECT_ID, location=LOCATION) # Initialize with function's location for Vertex AI client
-        gemini_model_instance = aiplatform.GenerativeModel(MODEL_ID)
-        logging.info(f"Vertex AI SDK initialized successfully for project {PROJECT_ID} in {LOCATION} using model {MODEL_ID}.")
+        logging.info(f"Initializing Vertex AI with project='{PROJECT_ID}', location='{LOCATION}' using vertexai.init()...")
+        vertexai.init(project=PROJECT_ID, location=LOCATION) # Use vertexai.init()
+        logging.info("Vertex AI initialized via vertexai.init(). Attempting to load GenerativeModel...")
+        gemini_model_instance = GenerativeModel(MODEL_ID) # Use GenerativeModel directly after the new import
+        logging.info(f"Vertex AI GenerativeModel '{MODEL_ID}' loaded successfully.")
+    except AttributeError as ae: # Should ideally not happen with the new import
+        logging.error(f"AttributeError during Vertex AI SDK usage: {ae}", exc_info=True)
+        try:
+            logging.error(f"google-cloud-aiplatform version at time of AttributeError: {aiplatform_version_check.__version__}")
+        except NameError:
+            logging.error("google-cloud-aiplatform version could not be determined for AttributeError.")
+        gemini_model_instance = None
     except Exception as e:
-        logging.error(f"Error initializing Vertex AI SDK: {e}", exc_info=True)
-        gemini_model_instance = None # Ensure it's None if initialization fails
+        logging.error(f"General error initializing Vertex AI SDK or Model: {e}", exc_info=True)
+        gemini_model_instance = None
 else:
-    logging.error("GCP_PROJECT or GCP_REGION environment variables not set internally. Vertex AI SDK not initialized.")
+    logging.error("Manually set GCP_PROJECT or GCP_REGION_EU were NOT resolved by Python. SDK not initialized.")
+    logging.error(f"Values at point of failure: PROJECT_ID ('{PROJECT_ID}') is {bool(PROJECT_ID)}, LOCATION ('{LOCATION}') is {bool(LOCATION)}")
+# ---- END INITIALIZATION ----
 
 app = Flask(__name__)
 

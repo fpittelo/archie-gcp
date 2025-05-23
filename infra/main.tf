@@ -8,7 +8,7 @@ resource "google_service_account" "archiemcp_function_sa" {
 resource "google_cloud_run_v2_service" "archiemcp_service" {
   name     = var.cloudfunction // e.g., "archiefunct-dev"
   project  = var.project_id
-  location = var.location 
+  location = var.region 
   deletion_protection = false # Add this line
 
   template {
@@ -18,6 +18,21 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
       ports {
         container_port = 8080
       }
+      
+      env {
+        name  = "GCP_PROJECT"
+        value = var.project_id # This 'var.project_id' is a Terraform variable
+      }
+      env {
+        name  = "GCP_REGION_EU"
+        value = var.region # This 'var.region' is a Terraform variable, ensure it gets the correct region e.g. europe-west6
+      }
+      env {
+        name  = "GEMINI_MODEL"
+        value = var.gemini_model_name # You'll need to define/pass this Terraform variable too
+                                     # e.g., "gemini-2.0-pro-exp-02-05" or pass from GitHub Actions
+      }
+
       resources {
         limits = {
           cpu    = "1000m"
@@ -42,7 +57,7 @@ resource "google_cloud_run_v2_service_iam_member" "allow_unauthenticated" {
 resource "google_storage_bucket" "archiemcp_bucket" {
   name                        = var.storage_bucket
   project                     = var.project_id
-  location                    = var.location
+  location                    = var.region
   
   uniform_bucket_level_access = true
   force_destroy = true
@@ -140,4 +155,10 @@ resource "google_project_iam_member" "function_build_sa_artifact_registry_writer
   project = var.project_id
   role    = "roles/artifactregistry.writer" // Allows reading and writing to any AR repo in the project
   member  = google_service_account.archiemcp_function_sa.member
+}
+
+resource "google_storage_bucket_iam_member" "public_website_viewer" {
+  bucket = google_storage_bucket.archiemcp_bucket.name // Uses the name of your existing bucket
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
 }

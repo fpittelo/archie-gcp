@@ -1,6 +1,6 @@
 environment             = "dev"
 project_id              = "archie-458607"
-location                = "europe-west6"
-region                  = "europe-west6"
+region                  = "europe-west1"
 storage_bucket          = "archiemcp-dev"
 cloudfunction           = "archie-mcp-dev"
+gemini_model_name       = "gemini-2.0-flash-001"
