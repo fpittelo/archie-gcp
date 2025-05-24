@@ -34,8 +34,8 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
 
-      # Dynamic Terraform State Bucket variable (includes branch name and project number secret)
-      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
+      # Dynamic Terraform State Bucket variable (includes environment name and project number secret)
+      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
@@ -237,7 +237,7 @@ jobs:
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
-      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
+      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
     steps:
@@ -294,7 +294,7 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
       ENVIRONMENT: ${{ github.ref_name }}
-      TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }} # Added for terraform init
+      TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }} # Added for terraform init
 
     steps:
       - name: Checkout Code

@@ -37,12 +37,10 @@
 
     <main class="main-container container-grid" role="main" id="main">
         <div class="container pt-5 pb-5"> <h1>Ask Archie</h1>
-            <p class="lead">Enter your query below to get a response from Gemini.</p>
-
+            <p class="lead">Enter your query below to get a response from Archie</p>
             <form id="query-form" class="mt-4">
                 <div class="form-group">
-                    <label for="query-input">Your Query</label>
-                    <textarea class="form-control" id="query-input" name="query" rows="3" placeholder="e.g., What is the EPFL style guide?"></textarea>
+                    <textarea class="form-control" id="query-input" name="query" rows="3" placeholder="Ask any question here..." style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary mt-3">Send Query</button>
             </form>
@@ -114,7 +112,14 @@
                 }
 
                 const data = await response.json();
-                geminiResponseElement.textContent = data.answer || 'No answer received from Archie.';
+                // Remove * signs from the response
+                let answer = data.answer ? data.answer.replace(/\*/g, '') : 'No answer received from Archie.';
+                geminiResponseElement.textContent = answer;
+                // Apply the same style as the query input
+                geminiResponseElement.style.borderRadius = '10px';
+                geminiResponseElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                geminiResponseElement.style.padding = '10px'; // Add some padding for better readability
+                geminiResponseElement.style.whiteSpace = 'pre-wrap'; // Preserve line breaks
 
             } catch (error) {
                 console.error('Error querying Archie:', error);
