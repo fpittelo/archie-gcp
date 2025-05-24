@@ -98,15 +98,19 @@
                 });
 
                 if (!response.ok) {
-                    let errorMessage = `HTTP error! status: ${response.status}`;
+                    // Try to get error message from backend if available
+                    let errorDetail = "";
+                    // Read the response body as text ONCE.
+                    const responseBodyText = await response.text();
                     try {
-                        const errorData = await response.json();
-                        errorMessage += `, message: ${errorData.error || 'Unknown server error'}`;
-                    } catch (e) {
-                        // If parsing error JSON fails, use the text response
-                        errorMessage += `, message: ${await response.text()}`;
+                        // Attempt to parse the text as JSON.
+                        const errorData = JSON.parse(responseBodyText);
+                        errorDetail = errorData.error || JSON.stringify(errorData);
+                    } catch (parseError) {
+                        // If JSON parsing fails, use the raw text as the detail.
+                        errorDetail = responseBodyText;
                     }
-                    throw new Error(errorMessage);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorDetail}`);
                 }
 
                 const data = await response.json();
