@@ -22,7 +22,8 @@ env:
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }} # Service account for GHA
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION_EU: ${{ vars.GCP_REGION_EU }} # Ensure this is a global var or defined per GH env
-  TF_STATE_BUCKET: terraform-state-${{ secrets.GCP_PROJECT_NUMBER }}
+  # Dynamic Terraform State Bucket variable (includes environment name from input and project number secret)
+  TF_STATE_BUCKET: terraform-state-${{ github.event.inputs.environment }}-${{ secrets.GCP_PROJECT_NUMBER }}
   # GCP_ARTIFACT_IMAGE_NAME will be pulled from GitHub environment vars per job
 
 jobs:
