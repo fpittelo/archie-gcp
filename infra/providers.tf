@@ -10,8 +10,10 @@ terraform {
     }
   }
   backend "gcs" {
-    bucket = "terraform-state-851493899554"
-    prefix = "backend"
+    # The 'bucket' and 'prefix' are configured dynamically during 'terraform init'
+    # in the CI/CD pipeline using -backend-config arguments.
+    # bucket = "will-be-set-by-ci"
+    # prefix = "will-be-set-by-ci"
     use_oidc = true
   }
 }
