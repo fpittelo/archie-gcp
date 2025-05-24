@@ -98,10 +98,13 @@
                 });
 
                 if (!response.ok) {
+                    console.log('Response not OK. Status:', response.status);
+                    console.log('Is body already used before .text() call?', response.bodyUsed);
+
                     // Try to get error message from backend if available
                     let errorDetail = "";
                     // Read the response body as text ONCE.
-                    const responseBodyText = await response.text();
+                    const responseBodyText = await response.text(); 
                     try {
                         // Attempt to parse the text as JSON.
                         const errorData = JSON.parse(responseBodyText);
