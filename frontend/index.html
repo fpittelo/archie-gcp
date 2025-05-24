@@ -76,10 +76,8 @@
             const responseArea = document.getElementById('response-area');
             const geminiResponseElement = document.getElementById('gemini-response');
 
-            // The URL of your Cloud Run service for the 'dev' environment
-            // For other environments (qa, main), this URL would need to change.
-            // Consider making this dynamic if deploying to multiple environments from the same frontend code.
-            const backendUrl = 'https://archie-mcp-dev-851493899554.europe-west1.run.app/';
+            // This placeholder will be replaced by the CI/CD pipeline
+            const backendUrl = '__BACKEND_URL__';
 
             // Show response area
             responseArea.style.display = 'block';
