@@ -43,6 +43,36 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set environment-specific backend URL
+        run: |
+          echo "Current branch: ${{ github.ref_name }}"
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            URL=${{ secrets.BACKEND_URL_MAIN }}
+            echo "Using MAIN backend URL: $URL"
+          elif [[ "${{ github.ref_name }}" == "qa" ]]; then
+            URL=${{ secrets.BACKEND_URL_QA }}
+            echo "Using QA backend URL: $URL"
+          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
+            URL=${{ secrets.BACKEND_URL_DEV }}
+            echo "Using DEV backend URL: $URL"
+          else
+            echo "Warning: Unknown branch '${{ github.ref_name }}'. Defaulting to DEV backend URL (if defined)."
+            URL=${{ secrets.BACKEND_URL_DEV }} # Fallback, or consider exiting with an error
+          fi
+
+          if [ -z "$URL" ]; then
+            echo "Error: Backend URL is not set for branch/environment '${{ github.ref_name }}'."
+            echo "Please ensure BACKEND_URL_MAIN, BACKEND_URL_QA, or BACKEND_URL_DEV secret is defined for this environment."
+            exit 1
+          fi
+          
+          echo "Replacing placeholder in frontend/index.html with $URL"
+          # Using | as a delimiter for sed because URLs contain /
+          # The path frontend/index.html should be relative to the repository root.
+          sed -i "s|__BACKEND_URL__|$URL|g" frontend/index.html
+          echo "Replacement complete. Verifying content (first 5 lines containing backendUrl):"
+          grep 'backendUrl' frontend/index.html | head -n 5 || echo "backendUrl line not found after replacement or file is empty."
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         id: auth
