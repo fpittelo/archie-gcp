@@ -84,53 +84,52 @@
             geminiResponseElement.textContent = 'Thinking...';
 
             if (!query.trim()) {
-                geminiResponseElement.textContent = 'Please enter a question.';
-                return;
+               geminiResponseElement.textContent = 'Please enter a question.';
+               return;
             }
 
-            try {
+            // Create a FormData object
+           const formData = new FormData();
+           formData.append('question', query); // 'question' should match the field name your backend expects
+
+           try {
                 const response = await fetch(backendUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ question: query }),
-                });
-
-                if (!response.ok) {
-                    console.log('Response not OK. Status:', response.status);
-                    console.log('Is body already used before .text() call?', response.bodyUsed);
-
-                    // Try to get error message from backend if available
-                    let errorDetail = "";
-                    // Read the response body as text ONCE.
-                    const responseBodyText = await response.text(); 
-                    try {
-                        // Attempt to parse the text as JSON.
-                        const errorData = JSON.parse(responseBodyText);
-                        errorDetail = errorData.error || JSON.stringify(errorData);
-                    } catch (parseError) {
-                        // If JSON parsing fails, use the raw text as the detail.
-                        errorDetail = responseBodyText;
-                    }
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorDetail}`);
-                }
-
-                const data = await response.json();
-                // Remove * signs from the response
-                let answer = data.answer ? data.answer.replace(/\*/g, '') : 'No answer received from Archie.';
-                geminiResponseElement.textContent = answer;
-                // Apply the same style as the query input
-                geminiResponseElement.style.borderRadius = '10px';
-                geminiResponseElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                geminiResponseElement.style.padding = '10px'; // Add some padding for better readability
-                geminiResponseElement.style.whiteSpace = 'pre-wrap'; // Preserve line breaks
-
-            } catch (error) {
-                console.error('Error querying Archie:', error);
-                geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
-            }
+                    // REMOVE the 'Content-Type' header; the browser will set it correctly for FormData
+                    // headers: {
+                    //     'Content-Type': 'application/json', // NO LONGER NEEDED
+                    // },
+                body: formData, // Send the FormData object as the body
         });
+
+            if (!response.ok) {
+                console.log('Response not OK. Status:', response.status);
+                console.log('Is body already used before .text() call?', response.bodyUsed);
+
+                let errorDetail = "";
+                const responseBodyText = await response.text();
+            try {
+                const errorData = JSON.parse(responseBodyText);
+                errorDetail = errorData.error || JSON.stringify(errorData);
+            } catch (parseError) {
+                errorDetail = responseBodyText;
+            }
+            throw new Error(`HTTP error! status: ${response.status} - ${errorDetail}`);
+        }
+
+        const data = await response.json();
+        let answer = data.answer ? data.answer.replace(/\*/g, '') : 'No answer received from Archie.';
+        geminiResponseElement.textContent = answer;
+        geminiResponseElement.style.borderRadius = '10px';
+        geminiResponseElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+        geminiResponseElement.style.padding = '10px';
+        geminiResponseElement.style.whiteSpace = 'pre-wrap';
+
+    } catch (error) {
+        console.error('Error querying Archie:', error);
+        geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
+    }
+});
     </script>
 
 </body>
