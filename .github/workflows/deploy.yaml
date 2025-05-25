@@ -18,7 +18,7 @@ on:
 permissions:
   id-token: write
   contents: read # To checkout the repository
-  secrets: write # To update repository secrets
+# secrets: write # To update repository secrets
 
 jobs:
 
