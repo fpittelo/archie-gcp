@@ -134,6 +134,16 @@ resource "google_project_iam_member" "function_build_sa_artifact_registry_writer
   member  = google_service_account.archiemcp_function_sa.member
 }
 
+resource "google_storage_bucket" "archiemcp_bucket" {
+  name                        = var.storage_bucket
+  project                     = var.project_id
+  location                    = var.region
+
+  uniform_bucket_level_access = true
+  force_destroy               = true # OK for dev, use with caution in prod
+}
+
+
 resource "google_storage_bucket_iam_member" "public_website_viewer" {
   bucket = google_storage_bucket.archiemcp_bucket.name // Uses the name of your existing bucket
   role   = "roles/storage.objectViewer"
