@@ -139,10 +139,10 @@ resource "google_service_account_iam_member" "gha_can_act_as_function_sa" {
   member             = "serviceAccount:${var.deployer_service_account_email}" 
 }
 
-resource "google_storage_bucket_iam_member" "function_sa_can_read_source_bucket" {
-  bucket = google_storage_bucket.archiemcp_bucket.name // This is your "archiemcp-dev" bucket
-  role   = "roles/storage.objectViewer"
-  member = google_service_account.archiemcp_function_sa.member // Grants permission to "archiefunct-dev-sa@..."
+resource "google_storage_bucket_iam_member" "function_sa_can_write_to_bucket" { # Renamed for clarity
+  bucket = google_storage_bucket.archiemcp_bucket.name
+  role   = "roles/storage.objectCreator" # Corrected role
+  member = google_service_account.archiemcp_function_sa.member
 }
 
 resource "google_project_iam_member" "function_build_sa_project_storage_viewer" {
