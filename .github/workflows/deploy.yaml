@@ -277,9 +277,7 @@ jobs:
             -var="github_sha=${{ github.sha }}" \
             -var="archie_mcp_image_uri=${{ vars.GCP_REGION_EU }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}" \
             -var="google_oauth_client_id=${{ env.GCP_OAUTH_CLIENT_ID }}" \
-            -var="google_oauth_client_secret=${{ env.GCP_OAUTH_CLIENT_SECRET }}" \
-            -var="oauth_application_title=Archie ${{ env.ENVIRONMENT }} App" \
-            -var="oauth_support_email=${{ env.OAUTH_SUPPORT_EMAIL }}"
+            -var="google_oauth_client_secret=${{ env.GCP_OAUTH_CLIENT_SECRET }}"
 
       - name: Get Cloud Run Service URI
         id: get_service_uri
