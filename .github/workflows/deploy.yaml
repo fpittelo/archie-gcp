@@ -223,6 +223,7 @@ jobs:
     env:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }} # Add this line
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
       TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
