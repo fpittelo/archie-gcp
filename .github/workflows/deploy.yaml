@@ -17,9 +17,8 @@ on:
 
 permissions:
   id-token: write
-  contents: read     # To checkout the repository
-  environments: write # To write environment secrets
-# secrets: write # To update repository secrets
+  contents: read
+  pull-requests: write # Required for updating secrets in pull requests
 
 jobs:
 
@@ -28,15 +27,12 @@ jobs:
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
-      # Google Cloud Authentication Secrets (fetched from environment secrets)
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}
       GCP_COMPUTE_SERVICE_ACCOUNT: ${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
-
-      # Dynamic Terraform State Bucket variable (includes environment name and project number secret)
       TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
@@ -114,6 +110,7 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
 
       # --- Terraform Backend Setup ---
+
       # This step ensures the GCS bucket for Terraform state exists before Terraform init
       - name: Ensure Terraform State Bucket Exists
         run: |
