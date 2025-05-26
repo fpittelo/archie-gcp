@@ -17,7 +17,8 @@ on:
 
 permissions:
   id-token: write
-  contents: read # To checkout the repository
+  contents: read     # To checkout the repository
+  environments: write # To write environment secrets
 # secrets: write # To update repository secrets
 
 jobs:
@@ -286,7 +287,7 @@ jobs:
       - name: Update GitHub Secret with Cloud Run Service URI
         if: github.ref_name == 'main' || github.ref_name == 'qa' || github.ref_name == 'dev'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GITHUB_TOKEN has secrets:write permission
+          GH_TOKEN: ${{ secrets.GH_TOKEN }} # GH_TOKEN has secrets:write permission
           SERVICE_URI: ${{ steps.get_service_uri.outputs.SERVICE_URI }}
         run: |
           SECRET_NAME=""
