@@ -32,6 +32,16 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
         value = var.gemini_model_name # You'll need to define/pass this Terraform variable too
                                      # e.g., "gemini-2.0-pro-exp-02-05" or pass from GitHub Actions
       }
+      env {
+        name  = "GOOGLE_OAUTH_CLIENT_ID"
+        value = var.google_oauth_client_id # You will need to define this variable
+      }
+      env {
+        name  = "GOOGLE_OAUTH_CLIENT_SECRET"
+        value = var.google_oauth_client_secret # You will need to define this variable
+                                               # and mark it as sensitive
+      }
+
 
       resources {
         limits = {
@@ -98,6 +108,13 @@ resource "google_project_service" "iam" { # Identity and Access Management API
   disable_on_destroy         = false
 }
 
+resource "google_project_service" "iap" {
+  project                    = var.project_id
+  service                    = "iap.googleapis.com" # Identity-Aware Proxy API, needed for brand
+  disable_dependent_services = false
+  disable_on_destroy         = false
+}
+
 resource "google_project_iam_member" "function_sa_aiplatform_user" {
   project = var.project_id
   role    = "roles/aiplatform.user"
@@ -159,4 +176,39 @@ resource "google_storage_bucket_iam_member" "public_website_viewer" {
   bucket = google_storage_bucket.archiemcp_bucket.name // Uses the name of your existing bucket
   role   = "roles/storage.objectViewer"
   member = "allUsers"
+}
+
+# --- OAuth Consent Screen (Brand) ---
+data "google_project" "project" {
+  project_id = var.project_id
+}
+
+resource "google_iap_brand" "project_brand" {
+  project             = data.google_project.project.number # Must be the numeric project number
+  application_title   = var.oauth_application_title
+  support_email       = var.oauth_support_email
+  depends_on          = [google_project_service.iap] # Ensure IAP API is enabled first
+}
+
+# --- Variables for OAuth ---
+variable "google_oauth_client_id" {
+  description = "The Google OAuth 2.0 Client ID for web application authentication (obtained from GCP Console)."
+  type        = string
+  sensitive   = true # Mark as sensitive to prevent output in logs
+}
+
+variable "google_oauth_client_secret" {
+  description = "The Google OAuth 2.0 Client Secret for web application authentication (obtained from GCP Console)."
+  type        = string
+  sensitive   = true # Mark as sensitive to prevent output in logs
+}
+
+variable "oauth_application_title" {
+  description = "The application name displayed on the OAuth consent screen."
+  type        = string
+}
+
+variable "oauth_support_email" {
+  description = "The support email address displayed on the OAuth consent screen. Must be a user/group in the project."
+  type        = string
 }
