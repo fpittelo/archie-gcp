@@ -95,13 +95,17 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
         logging.error("Gemini model not initialized. Cannot process request.")
         return (json.dumps({"error": "Internal server error: Model not initialized"}), 500, headers)
 
-    request_json = request.get_json(silent=True)
+    # To handle multipart/form-data as sent by the frontend's FormData
+    if "question" not in request.form:
+        # Fallback for testing with tools that send application/json
+        request_json = request.get_json(silent=True)
+        if not request_json or "question" not in request_json:
+            logging.warning("Invalid request: 'question' field missing in form data or JSON body.")
+            return (json.dumps({"error": "Invalid request: 'question' field is required in form data or JSON body."}), 400, headers)
+        user_question = request_json["question"]
+    else:
+        user_question = request.form["question"]
 
-    if not request_json or "question" not in request_json:
-        logging.warning("Invalid request: JSON body with 'question' field is required.")
-        return (json.dumps({"error": "Invalid request: JSON body with 'question' field is required."}), 400, headers)
-
-    user_question = request_json["question"]
     logging.info(f"Received question for {MODEL_ID}: {user_question[:100]}...") # Log snippet
 
     try:

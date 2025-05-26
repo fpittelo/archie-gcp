@@ -18,6 +18,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  pull-requests: write # Required for updating secrets in pull requests
 
 jobs:
 
@@ -26,15 +27,12 @@ jobs:
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     env:
-      # Google Cloud Authentication Secrets (fetched from environment secrets)
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }}
       GCP_COMPUTE_SERVICE_ACCOUNT: ${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Used for bucket project
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
-
-      # Dynamic Terraform State Bucket variable (includes environment name and project number secret)
       TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
 
@@ -42,36 +40,6 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set environment-specific backend URL
-        run: |
-          echo "Current branch: ${{ github.ref_name }}"
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            URL=${{ secrets.BACKEND_URL_MAIN }}
-            echo "Using MAIN backend URL: $URL"
-          elif [[ "${{ github.ref_name }}" == "qa" ]]; then
-            URL=${{ secrets.BACKEND_URL_QA }}
-            echo "Using QA backend URL: $URL"
-          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
-            URL=${{ secrets.BACKEND_URL_DEV }}
-            echo "Using DEV backend URL: $URL"
-          else
-            echo "Warning: Unknown branch '${{ github.ref_name }}'. Defaulting to DEV backend URL (if defined)."
-            URL=${{ secrets.BACKEND_URL_DEV }} # Fallback, or consider exiting with an error
-          fi
-
-          if [ -z "$URL" ]; then
-            echo "Error: Backend URL is not set for branch/environment '${{ github.ref_name }}'."
-            echo "Please ensure BACKEND_URL_MAIN, BACKEND_URL_QA, or BACKEND_URL_DEV secret is defined for this environment."
-            exit 1
-          fi
-          
-          echo "Replacing placeholder in frontend/index.html with $URL"
-          # Using | as a delimiter for sed because URLs contain /
-          # The path frontend/index.html should be relative to the repository root.
-          sed -i "s|__BACKEND_URL__|$URL|g" frontend/index.html
-          echo "Replacement complete. Verifying content (first 5 lines containing backendUrl):"
-          grep 'backendUrl' frontend/index.html | head -n 5 || echo "backendUrl line not found after replacement or file is empty."
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -94,22 +62,6 @@ jobs:
 #             --project="${{ secrets.GCP_PROJECT_ID }}"  # Explicitly specify project ID
 #           echo "created=true" >> $GITHUB_OUTPUT
 #         fi
-
-#     - name: Grant Terraform SA permission Compute Service account
-#       run: |
-#         COMPUTE_SA_EMAIL=${{ secrets.GCP_COMPUTE_SERVICE_ACCOUNT }}
-#         
-#         echo "Granting roles/iam.serviceAccountUser to ${{ env.GCP_SERVICE_ACCOUNT }} on ${COMPUTE_SA_EMAIL}"
-#         gcloud iam service-accounts add-iam-policy-binding "${COMPUTE_SA_EMAIL}" \
-#           --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-#           --role="roles/iam.serviceAccountUser" \
-#           --project="${{ env.GCP_PROJECT_ID }}"
-
-      - name: Grant MCP SA Permissions to Act As Terraform SA
-        run: |
-          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
-            --role="roles/iam.serviceAccountUser"
 
 
       - name: Grant permissions to SA for Cloud Functions
@@ -158,6 +110,7 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
 
       # --- Terraform Backend Setup ---
+
       # This step ensures the GCS bucket for Terraform state exists before Terraform init
       - name: Ensure Terraform State Bucket Exists
         run: |
@@ -217,6 +170,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set environment-specific backend URL
+        run: echo "Backend URL replacement will now happen in the deploy_frontend job."
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         id: auth
@@ -265,10 +221,15 @@ jobs:
     env:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }} # Add this line
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
       TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }}
       ENVIRONMENT: ${{ github.ref_name }}
+    outputs: # Expose the service URI for other jobs
+      archie_mcp_service_uri: ${{ steps.get_service_uri.outputs.SERVICE_URI }}
+      # frontend_bucket_name: ${{ steps.get_frontend_bucket.outputs.BUCKET_NAME }} # Bucket name will be fetched in deploy_frontend
+
 
     steps:
       - name: Checkout Code
@@ -308,10 +269,40 @@ jobs:
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
+            -var="mcp_service_account_email=${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
             -var="github_sha=${{ github.sha }}" \
             -var="archie_mcp_image_uri=${{ vars.GCP_REGION_EU }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
 
-##### End of Build and Push Image #####
+      - name: Get Cloud Run Service URI
+        id: get_service_uri
+        working-directory: infra/
+        run: |
+          SERVICE_URI=$(terraform output -raw archiemcp_service_uri)
+          echo "SERVICE_URI=${SERVICE_URI}" >> $GITHUB_OUTPUT
+          echo "Cloud Run Service URI: ${SERVICE_URI}"
+
+      - name: Update GitHub Secret with Cloud Run Service URI
+        if: github.ref_name == 'main' || github.ref_name == 'qa' || github.ref_name == 'dev'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }} # GH_TOKEN has secrets:write permission
+          SERVICE_URI: ${{ steps.get_service_uri.outputs.SERVICE_URI }}
+        run: |
+          SECRET_NAME=""
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            SECRET_NAME="BACKEND_URL_MAIN"
+          elif [[ "${{ github.ref_name }}" == "qa" ]]; then
+            SECRET_NAME="BACKEND_URL_QA"
+          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
+            SECRET_NAME="BACKEND_URL_DEV"
+          fi
+
+          if [ -z "$SECRET_NAME" ]; then
+            echo "Error: Could not determine secret name for branch ${{ github.ref_name }}."
+            exit 1
+          fi
+          echo "Updating secret ${SECRET_NAME} with value ${SERVICE_URI}"
+          gh secret set "${SECRET_NAME}" -b"${SERVICE_URI}" --env "${{ github.ref_name }}"
+##### End of Build and Push Image ######
 
   deploy_frontend:
     name: Deploy Frontend
@@ -324,6 +315,7 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION_EU }}
       ENVIRONMENT: ${{ github.ref_name }}
+      ARCHIE_MCP_SERVICE_URI_FROM_INFRA: ${{ needs.deploy_infra.outputs.archie_mcp_service_uri }}
       TF_STATE_BUCKET: terraform-state-${{ github.ref_name }}-${{ secrets.GCP_PROJECT_NUMBER }} # Added for terraform init
 
     steps:
@@ -350,19 +342,37 @@ jobs:
             -backend-config="prefix=tfstate/${{ env.ENVIRONMENT }}"
         working-directory: infra/
 
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: infra/
+      # No need for terraform validate or apply here if we are only uploading files
+      # and the bucket is already created by deploy_infra.
+      # We only need terraform output for the bucket name.
 
-      - name: Terraform Apply for Frontend
+      - name: Get Frontend Bucket Name
+        id: get_frontend_bucket
         working-directory: infra/
         run: |
-          terraform apply -auto-approve \
-            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
-            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION_EU }}" \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var-file="${{ github.ref_name }}.tfvars" \
-            -var="github_workspace=${{ github.workspace }}" \
-            -var="github_sha=${{ github.sha }}" \
-            -var="archie_mcp_image_uri=${{ vars.GCP_REGION_EU }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
+          BUCKET_NAME=$(terraform output -raw frontend_storage_bucket_name)
+          echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_OUTPUT
+          echo "Frontend GCS Bucket Name: ${BUCKET_NAME}"
+
+      - name: Configure Frontend with Backend URL
+        run: |
+          URL_TO_SET="${{ env.ARCHIE_MCP_SERVICE_URI_FROM_INFRA }}"
+          echo "Retrieved service URI from deploy_infra job: $URL_TO_SET"
+          if [ -z "$URL_TO_SET" ]; then
+            echo "Error: Backend URL (archie_mcp_service_uri from deploy_infra) is not set."
+            exit 1
+          fi
+          echo "Replacing placeholder in frontend/index.html with $URL_TO_SET"
+          sed -i "s|__BACKEND_URL__|$URL_TO_SET|g" frontend/index.html
+          echo "Replacement complete. Verifying content (first 5 lines containing backendUrl):"
+          grep 'backendUrl' frontend/index.html | head -n 5 || echo "backendUrl line not found after replacement or file is empty."
+
+      - name: Upload Frontend to GCS
+        working-directory: infra/
+        run: |
+          # The working-directory is infra/, but frontend files are at the root of the checkout.
+          # So, we use relative paths from the root for gsutil.
+          FRONTEND_BUCKET_NAME="${{ steps.get_frontend_bucket.outputs.BUCKET_NAME }}"
+          echo "Uploading frontend files from ../frontend/ to gs://${FRONTEND_BUCKET_NAME}/"
+          gsutil -m rsync -r -d ../frontend/ gs://${FRONTEND_BUCKET_NAME}/
+          echo "Frontend deployment to GCS complete."

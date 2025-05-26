@@ -8,3 +8,8 @@ output "archiemcp_service_account_email" { // Optionally rename for consistency,
   description = "Email of the service account used by the ArchieMCP Cloud Run service." // Updated description
   value       = google_service_account.archiemcp_function_sa.email
 }
+
+output "frontend_storage_bucket_name" {
+  description = "The name of the GCS bucket for the frontend static website."
+  value       = google_storage_bucket.archiemcp_bucket.name
+}

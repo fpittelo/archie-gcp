@@ -54,23 +54,6 @@ resource "google_cloud_run_v2_service_iam_member" "allow_unauthenticated" {
   member   = "allUsers"
 }
 
-resource "google_storage_bucket" "archiemcp_bucket" {
-  name                        = var.storage_bucket
-  project                     = var.project_id
-  location                    = var.region
-  
-  uniform_bucket_level_access = true
-  force_destroy = true
-}
-
-resource "google_storage_bucket_object" "archiemcp_function_source" {
-  name   = "function-source-${data.archive_file.function_source.output_md5}.zip"
-  bucket = google_storage_bucket.archiemcp_bucket.name
-  source = data.archive_file.function_source.output_path
-  # Setting content_type is necessary to prevent issues with Google Cloud Functions deployments
-  content_type = "application/zip"
-}
-
 # --- Enable Necessary APIs ---
 # (These ensure the APIs are active, good practice to keep them declared)
 resource "google_project_service" "cloudfunctions" {
@@ -85,12 +68,6 @@ resource "google_project_service" "run" {
   service                    = "run.googleapis.com"
   disable_dependent_services = false
   disable_on_destroy         = false
-}
-
-data "archive_file" "function_source" {
-  type        = "zip"
-  output_path = "${path.module}/tmp/function_source.zip"
-  source_dir  = "${var.github_workspace}/functions/archiemcp"
 }
 
 resource "google_project_service" "artifactregistry" {
@@ -139,10 +116,21 @@ resource "google_service_account_iam_member" "gha_can_act_as_function_sa" {
   member             = "serviceAccount:${var.deployer_service_account_email}" 
 }
 
-resource "google_storage_bucket_iam_member" "function_sa_can_read_source_bucket" {
-  bucket = google_storage_bucket.archiemcp_bucket.name // This is your "archiemcp-dev" bucket
-  role   = "roles/storage.objectViewer"
-  member = google_service_account.archiemcp_function_sa.member // Grants permission to "archiefunct-dev-sa@..."
+variable "mcp_service_account_email" {
+  description = "The email of the MCP service account that needs to act as the function SA. Ensure this SA exists."
+  type        = string
+}
+
+resource "google_service_account_iam_member" "mcp_sa_can_act_as_function_sa" {
+  service_account_id = google_service_account.archiemcp_function_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.mcp_service_account_email}"
+}
+
+resource "google_storage_bucket_iam_member" "function_sa_can_write_to_bucket" { # Renamed for clarity
+  bucket = google_storage_bucket.archiemcp_bucket.name
+  role   = "roles/storage.objectCreator" # Corrected role
+  member = google_service_account.archiemcp_function_sa.member
 }
 
 resource "google_project_iam_member" "function_build_sa_project_storage_viewer" {
@@ -156,6 +144,16 @@ resource "google_project_iam_member" "function_build_sa_artifact_registry_writer
   role    = "roles/artifactregistry.writer" // Allows reading and writing to any AR repo in the project
   member  = google_service_account.archiemcp_function_sa.member
 }
+
+resource "google_storage_bucket" "archiemcp_bucket" {
+  name                        = var.storage_bucket
+  project                     = var.project_id
+  location                    = var.region
+
+  uniform_bucket_level_access = true
+  force_destroy               = true # OK for dev, use with caution in prod
+}
+
 
 resource "google_storage_bucket_iam_member" "public_website_viewer" {
   bucket = google_storage_bucket.archiemcp_bucket.name // Uses the name of your existing bucket
