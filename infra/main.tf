@@ -116,6 +116,17 @@ resource "google_service_account_iam_member" "gha_can_act_as_function_sa" {
   member             = "serviceAccount:${var.deployer_service_account_email}" 
 }
 
+variable "mcp_service_account_email" {
+  description = "The email of the MCP service account that needs to act as the function SA. Ensure this SA exists."
+  type        = string
+}
+
+resource "google_service_account_iam_member" "mcp_sa_can_act_as_function_sa" {
+  service_account_id = google_service_account.archiemcp_function_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.mcp_service_account_email}"
+}
+
 resource "google_storage_bucket_iam_member" "function_sa_can_write_to_bucket" { # Renamed for clarity
   bucket = google_storage_bucket.archiemcp_bucket.name
   role   = "roles/storage.objectCreator" # Corrected role

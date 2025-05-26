@@ -66,12 +66,6 @@ jobs:
 #           echo "created=true" >> $GITHUB_OUTPUT
 #         fi
 
-      - name: Grant MCP SA Permissions to Act As Terraform SA
-        run: |
-          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
-            --role="roles/iam.serviceAccountUser"
-
 
       - name: Grant permissions to SA for Cloud Functions
         run: |
@@ -276,6 +270,7 @@ jobs:
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var-file="${{ github.ref_name }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
+            -var="mcp_service_account_email=${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
             -var="github_sha=${{ github.sha }}" \
             -var="archie_mcp_image_uri=${{ vars.GCP_REGION_EU }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:${{ github.sha }}"
 
