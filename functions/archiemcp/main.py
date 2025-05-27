@@ -4,7 +4,8 @@ from vertexai.generative_models import GenerativeModel # Import GenerativeModel 
 import os
 import json
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, session, url_for
+from google_auth_oauthlib.flow import Flow
 
 # Unique log line for deployment verification
 logging.info("Main.py version with OAuth routes is running! - DEBUG_LOG_V2")
@@ -21,20 +22,39 @@ except ImportError:
     logging.warning("Could not import google.cloud.aiplatform for version check.")
 
 
+# --- Constants for OAuth ---
 # ---- STARTUP ENVIRONMENT VARIABLE CHECK AND AI INITIALIZATION ----
 logging.info("---- STARTUP ENVIRONMENT VARIABLE CHECK (Using Manually Set Vars from Console) ----")
 raw_project_id_manual = os.environ.get("GCP_PROJECT")
 raw_location_ch_manual = os.environ.get("GCP_REGION_EU")
 raw_model_id_manual = os.environ.get("GEMINI_MODEL")
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 
 logging.info(f"Read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type: {type(raw_project_id_manual)}")
 logging.info(f"Read (manual) GCP_REGION_EU. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
 logging.info(f"Read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
+logging.info(f"Read GOOGLE_OAUTH_CLIENT_ID. Is set: {bool(GOOGLE_OAUTH_CLIENT_ID)}")
+logging.info(f"Read GOOGLE_OAUTH_CLIENT_SECRET. Is set: {bool(GOOGLE_OAUTH_CLIENT_SECRET)}")
 
 
 PROJECT_ID = raw_project_id_manual
 LOCATION = raw_location_ch_manual
 MODEL_ID = raw_model_id_manual
+
+# --- OAuth Configuration ---
+CLIENT_SECRETS_DICT = None
+if GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET:
+    CLIENT_SECRETS_DICT = {
+        "web": {
+            "client_id": GOOGLE_OAUTH_CLIENT_ID,
+            "client_secret": GOOGLE_OAUTH_CLIENT_SECRET,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
+    }
+else:
+    logging.error("GOOGLE_OAUTH_CLIENT_ID or GOOGLE_OAUTH_CLIENT_SECRET not set. OAuth flow will not work.")
 
 # Fallbacks
 if not MODEL_ID:
@@ -70,6 +90,11 @@ else:
 # ---- END INITIALIZATION ----
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_key_please_change_in_prod")
+if app.secret_key == "dev_secret_key_please_change_in_prod":
+    logging.warning("Using default FLASK_SECRET_KEY. Please set a strong secret key in your environment for production.")
+
+
 
 @app.route('/', methods=['POST', 'OPTIONS']) # Removed 'request' parameter
 def archiemcp():  # Removed 'request' parameter - Flask provides it automatically
@@ -139,6 +164,57 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
         logging.error(f"Error during Gemini API call or response processing: {e}", exc_info=True)
         # Provide a more generic error message to the client for security
         return (json.dumps({"error": "An internal error occurred while processing your request."}), 500, headers)
+
+# --- Google OAuth Routes ---
+
+@app.route('/auth/google', methods=['GET'])
+def auth_google_initiate():
+    """Initiates the Google OAuth 2.0 login flow."""
+    if not CLIENT_SECRETS_DICT:
+        logging.error("OAuth client secrets not configured. Cannot initiate login.")
+        return "OAuth is not configured correctly on the server.", 500
+
+    redirect_uri = url_for('auth_google_callback', _external=True)
+    logging.info(f"Calculated redirect_uri for OAuth: {redirect_uri}")
+
+    flow = Flow.from_client_config(
+        client_config=CLIENT_SECRETS_DICT,
+        scopes=[
+            "https://www.googleapis.com/auth/userinfo.profile",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "openid"
+        ],
+        redirect_uri=redirect_uri
+    )
+
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        prompt='consent'
+    )
+    session['oauth_state'] = state
+    logging.info(f"Redirecting to Google authorization URL. State: {state}")
+    return redirect(authorization_url)
+
+@app.route('/auth/google/callback', methods=['GET'])
+def auth_google_callback():
+    """Handles the callback from Google after user authentication."""
+    state = session.pop('oauth_state', None)
+    if not state or state != request.args.get('state'):
+        logging.error("OAuth state mismatch. Possible CSRF attack.")
+        return "Invalid state parameter.", 400
+
+    if not CLIENT_SECRETS_DICT:
+        logging.error("OAuth client secrets not configured. Cannot process callback.")
+        return "OAuth is not configured correctly on the server.", 500
+
+    # Placeholder: Exchange authorization code for tokens
+    auth_code = request.args.get('code')
+    logging.info(f"Received callback from Google. Authorization code (first 10 chars): {str(auth_code)[:10]}...")
+    # In a real app:
+    # flow.fetch_token(authorization_response=request.url)
+    # credentials = flow.credentials
+    # # Store credentials, get user info, create session, etc.
+    return f"Login successful (callback received)! Auth Code (snippet): {str(auth_code)[:10]}... You would now exchange the code for tokens."
 
 
 if __name__ == '__main__':
