@@ -52,3 +52,9 @@ variable "gemini_model_name" {
   description = "The name of the Gemini model to be used."
   type        = string
 }
+
+variable "upload_frontend_files" {
+  description = "Whether to upload frontend files via Terraform. Set to false if a later step (e.g., in CI/CD) handles frontend file uploads after placeholder replacement."
+  type        = bool
+  default     = true
+}
