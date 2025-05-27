@@ -191,7 +191,7 @@ jobs:
         id: tag_and_build_image
         run: |
           echo "Building and tagging image as: ${{ env.IMAGE_TO_PUSH }}"
-          docker build -t "${{ env.IMAGE_TO_PUSH }}" -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
+          docker build --no-cache -t "${{ env.IMAGE_TO_PUSH }}" -f ./functions/archiemcp/Dockerfile ./functions/archiemcp/
           # If using outputs:
           # echo "image_uri_with_sha=${{ env.IMAGE_TO_PUSH }}" >> $GITHUB_OUTPUT
 

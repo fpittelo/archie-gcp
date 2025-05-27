@@ -6,6 +6,9 @@ import json
 import logging
 from flask import Flask, request, jsonify
 
+# Unique log line for deployment verification
+logging.info("Main.py version with OAuth routes is running! - DEBUG_LOG_V2")
+
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 
