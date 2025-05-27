@@ -369,12 +369,17 @@ jobs:
             exit 1
           fi
           echo "Replacing placeholder in frontend/index.html with $URL_TO_SET"
+          # For index.html, the global replacement is fine as the placeholder is only in the assignment.
           sed -i "s|__BACKEND_URL__|$URL_TO_SET|g" frontend/index.html
-          echo "Replacing placeholder in frontend/login.html with $URL_TO_SET"
-          sed -i "s|__BACKEND_URL__|$URL_TO_SET|g" frontend/login.html
+
+          echo "Replacing placeholder specifically in frontend/login.html assignment with $URL_TO_SET"
+          # For login.html, be specific to avoid changing the if condition's literal string.
+          # This targets 'const backendUrl = "__BACKEND_URL__";'
+          sed -i "s|const backendUrl = \"__BACKEND_URL__\";|const backendUrl = \"${URL_TO_SET}\";|" frontend/login.html
+
           echo "Replacement complete. Verifying content (first 5 lines containing backendUrl):"
           grep 'backendUrl' frontend/index.html | head -n 5 || echo "backendUrl line not found after replacement or file is empty."
-          grep 'backendUrl' frontend/login.html | head -n 5 || echo "backendUrl line not found in login.html after replacement or file is empty."
+          grep 'backendUrl =' frontend/login.html | head -n 5 || echo "backendUrl assignment line not found in login.html after replacement or file is empty."
 
       - name: Upload Frontend to GCS
         working-directory: infra/
