@@ -41,6 +41,10 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
         value = var.google_oauth_client_secret # You will need to define this variable
                                                # and mark it as sensitive
       }
+      env {
+        name  = "FLASK_SECRET_KEY"
+        value = var.flask_secret_key # Use the Terraform variable
+      }
 
 
       resources {

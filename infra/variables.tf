@@ -58,3 +58,9 @@ variable "upload_frontend_files" {
   type        = bool
   default     = true
 }
+
+variable "flask_secret_key" {
+  description = "A strong secret key for Flask session management, passed from GitHub Actions secrets."
+  type        = string
+  sensitive   = true # Important: Marks this as sensitive
+}

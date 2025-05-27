@@ -1,3 +1,4 @@
-Flask==3.1.1
+Flask>=3.0.0
 google-cloud-aiplatform>=1.53.0,<2.0.0
+google-auth-oauthlib>=1.1.0,<1.2.2  # Or a more recent version
 gunicorn>=22.0.0
