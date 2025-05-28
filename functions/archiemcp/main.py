@@ -6,6 +6,7 @@ import json
 import logging
 from flask import Flask, request, jsonify, redirect, session, url_for
 from google_auth_oauthlib.flow import Flow
+from werkzeug.middleware.proxy_fix import ProxyFix # <--- Add this import
 
 # Unique log line for deployment verification
 logging.info("Main.py version with OAuth routes is running! - DEBUG_LOG_V2")
@@ -90,6 +91,14 @@ else:
 # ---- END INITIALIZATION ----
 
 app = Flask(__name__)
+
+# --- Add ProxyFix ---
+# This tells Flask to trust the X-Forwarded-Proto (and other) headers
+# set by the Cloud Run proxy, so url_for(_external=True) generates https URLs.
+# Adjust x_for, x_proto, x_host, x_prefix as needed depending on your proxy setup.
+# For Cloud Run, these defaults are usually fine.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+# --- End ProxyFix ---
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_key_please_change_in_prod")
 if app.secret_key == "dev_secret_key_please_change_in_prod":
     logging.warning("Using default FLASK_SECRET_KEY. Please set a strong secret key in your environment for production.")
