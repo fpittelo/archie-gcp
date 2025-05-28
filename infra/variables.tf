@@ -64,3 +64,8 @@ variable "flask_secret_key" {
   type        = string
   sensitive   = true # Important: Marks this as sensitive
 }
+
+variable "frontend_base_url" {
+  description = "The base URL of the frontend application (e.g., where index.html is served)."
+  type        = string
+}

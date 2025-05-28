@@ -6,6 +6,8 @@ import json
 import logging
 from flask import Flask, request, jsonify, redirect, session, url_for
 from google_auth_oauthlib.flow import Flow
+from google.oauth2 import id_token # For verifying ID token
+from google.auth.transport import requests as google_auth_requests # For verifying ID token
 from werkzeug.middleware.proxy_fix import ProxyFix # <--- Add this import
 
 # Unique log line for deployment verification
@@ -216,15 +218,60 @@ def auth_google_callback():
         logging.error("OAuth client secrets not configured. Cannot process callback.")
         return "OAuth is not configured correctly on the server.", 500
 
-    # Placeholder: Exchange authorization code for tokens
-    auth_code = request.args.get('code')
-    logging.info(f"Received callback from Google. Authorization code (first 10 chars): {str(auth_code)[:10]}...")
-    # In a real app:
-    # flow.fetch_token(authorization_response=request.url)
-    # credentials = flow.credentials
-    # # Store credentials, get user info, create session, etc.
-    return f"Login successful (callback received)! Auth Code (snippet): {str(auth_code)[:10]}... You would now exchange the code for tokens."
+    redirect_uri = url_for('auth_google_callback', _external=True) # Must match what was used in initiate
+    flow = Flow.from_client_config(
+        client_config=CLIENT_SECRETS_DICT,
+        scopes=None, # Scopes are not needed again here if state is used correctly
+        redirect_uri=redirect_uri
+    )
 
+    try:
+        # Use the full URL for `fetch_token` as it contains the state and code
+        flow.fetch_token(authorization_response=request.url)
+    except Exception as e:
+        logging.error(f"Failed to fetch token: {e}", exc_info=True)
+        return "Failed to fetch authorization token.", 500
+
+    credentials = flow.credentials
+    if not credentials or not credentials.id_token:
+        logging.error("Failed to obtain ID token from credentials.")
+        return "Could not obtain ID token.", 500
+
+    try:
+        # Verify the ID token and get user info
+        # You MUST verify the ID token on the server-side.
+        # The audience is your app's OAuth Client ID.
+        id_info = id_token.verify_oauth2_token(
+            credentials.id_token,
+            google_auth_requests.Request(),
+            CLIENT_SECRETS_DICT['web']['client_id']
+        )
+
+        # Store user information in session
+        session['google_id'] = id_info.get('sub')
+        session['name'] = id_info.get('name')
+        session['email'] = id_info.get('email')
+        session['picture'] = id_info.get('picture')
+        session['credentials'] = credentials_to_dict(credentials) # Helper to store serializable credentials
+
+        logging.info(f"User {session['email']} logged in successfully.")
+
+        FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL")
+        if FRONTEND_BASE_URL:
+            # Redirect to the configured frontend URL.
+            # This should be the URL where your index.html is served.
+            # e.g., "https://storage.googleapis.com/your-frontend-bucket"
+            redirect_target_url = FRONTEND_BASE_URL
+            logging.info(f"Redirecting to FRONTEND_BASE_URL: {redirect_target_url}")
+        else:
+            logging.warning("FRONTEND_BASE_URL environment variable not set. "
+                            "Falling back to internal '/app' page. "
+                            "Set FRONTEND_BASE_URL to your frontend's main page URL.")
+            redirect_target_url = url_for('archiemcp_page') # Fallback
+        return redirect(redirect_target_url)
+    except ValueError as e:
+        logging.error(f"ID token verification failed: {e}", exc_info=True)
+        return "ID token verification failed.", 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)

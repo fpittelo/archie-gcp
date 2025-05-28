@@ -45,7 +45,11 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
         name  = "FLASK_SECRET_KEY"
         value = var.flask_secret_key # Use the Terraform variable
       }
-
+      
+      env {
+        name  = "FRONTEND_BASE_URL"
+      value = var.frontend_base_url
+      }
 
       resources {
         limits = {
