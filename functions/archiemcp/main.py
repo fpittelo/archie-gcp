@@ -105,7 +105,14 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_key_please_chang
 if app.secret_key == "dev_secret_key_please_change_in_prod":
     logging.warning("Using default FLASK_SECRET_KEY. Please set a strong secret key in your environment for production.")
 
-
+# --- Helper Functions ---
+def credentials_to_dict(credentials):
+    return {'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+            'scopes': credentials.scopes}
 
 @app.route('/', methods=['POST', 'OPTIONS']) # Removed 'request' parameter
 def archiemcp():  # Removed 'request' parameter - Flask provides it automatically
@@ -272,6 +279,29 @@ def auth_google_callback():
     except ValueError as e:
         logging.error(f"ID token verification failed: {e}", exc_info=True)
         return "ID token verification failed.", 400
+
+# --- Placeholder App Page and Logout ---
+@app.route('/app', methods=['GET']) # Example route for after login
+def archiemcp_page():
+    if 'email' not in session:
+        # If FRONTEND_BASE_URL is not set and user lands here unauthenticated,
+        # redirect to login.
+        return redirect(url_for('auth_google_initiate'))
+
+    user_email = session.get('email', 'Guest')
+    user_name = session.get('name', 'User')
+    # This page would typically be your main application interface
+    # For now, just a welcome message.
+    return f"""
+        <h1>Welcome to Archie MCP (Fallback Page)</h1>
+        <p>Hello, {user_name} ({user_email})! You are logged in.</p>
+        <p><a href="{url_for('logout')}">Logout</a></p>
+        <p><em>Note: You are seeing this fallback page because the FRONTEND_BASE_URL might not be configured correctly. Normally, you would be redirected to the main application page.</em></p>
+    """
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('auth_google_initiate')) # Or redirect to a public landing page
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
