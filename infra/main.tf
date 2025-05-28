@@ -170,6 +170,11 @@ resource "google_storage_bucket" "archiemcp_bucket" {
 
   uniform_bucket_level_access = true
   force_destroy               = true # OK for dev, use with caution in prod
+
+  website {
+    main_page_suffix = "index.html"
+    not_found_page   = "index.html" # Or a specific 404.html if you have one
+  }
 }
 
 
