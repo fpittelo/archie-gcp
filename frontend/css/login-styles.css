@@ -1,0 +1,199 @@
+/* General Styles */
+body, html {
+    margin: 0;
+    padding: 0;
+    min-height: 100%; /* Use min-height to ensure it covers viewport even if content is short */
+    font-family: Arial, sans-serif; /* A clean, modern sans-serif font */
+    /* padding-bottom removed as footer is no longer fixed to viewport bottom globally */
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+.login-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* Left Column (Visual Element) */
+.left-column {
+    flex: 1; /* Takes up 50% of the width on large screens */
+    background-image: url('../flavicons/epfl-campus-aerial.jpg'); /* Adjust path if needed */
+    background-size: cover;
+    background-position: center;
+    display: block; 
+}
+
+/* Right Column (Login Elements) */
+.right-column {
+    flex: 1; /* Takes up 50% of the width on large screens */
+    position: relative; /* New: For positioning the footer within this column */
+    background-color: #FFFFFF;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    padding-bottom: 60px; /* New: Space for the footer within this column */
+    box-sizing: border-box;
+}
+
+.login-form-container {
+    width: 100%;
+    max-width: 400px; /* Max width for the form elements */
+    /* text-align: center; /* Replaced by flex alignment for direct children */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Horizontally center flex items like .login-main-content and .footer-links */
+}
+
+/* Logo */
+.logo {
+    margin-bottom: 40px;
+    font-size: 2.5rem; /* This will define the size for Archie and the reference for the image height */
+    font-weight: bold;
+    text-transform: uppercase;
+    display: flex; /* Use flexbox for alignment */
+    align-items: center; /* Vertically align image and text */
+    gap: 0.25em; /* Space between image and Archie text, relative to font size */
+}
+
+/* New styles for the EPFL logo image */
+.logo-epfl-img {
+    height: 2em; /* Makes image height proportional to the font-size of .logo */
+    width: auto; /* Maintain aspect ratio */
+}
+
+.logo-archie {
+    color: #000000; /* Bold Black */
+    /* Font-size, weight, and transform are inherited from .logo */
+}
+
+/* The old .logo-epfl class for text styling is no longer needed and can be removed or commented out */
+
+/* Login Button */
+.login-button {
+    background-color: #FF0000; /* Bold Red */
+    color: #FFFFFF; /* White text */
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2rem; 
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 50px; /* Pill shape */
+    cursor: pointer;
+    display: inline-block; 
+    width: auto; 
+    min-width: 200px; 
+    margin-bottom: 40px; 
+    transition: background-color 0.3s ease; 
+}
+
+.login-button:hover {
+    background-color: #CC0000; /* Darker red on hover */
+    /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); Optional shadow */
+}
+
+/* Wrapper for main login content (logo and button) to group them before footer */
+.login-main-content {
+    width: 100%; /* Ensure it takes the width constrained by login-form-container's max-width */
+    text-align: center; /* Center the logo text and the inline-block button within this wrapper */
+}
+
+/* Footer Links */
+.footer-links {
+    position: absolute; /* Changed from fixed to be relative to .right-column */
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #f0f0f0; /* Light gray banner */
+    padding: 12px 0; /* Vertical padding */
+    display: flex;
+    justify-content: center; /* Center links horizontally */
+    gap: 25px; /* Space between links */
+    z-index: 1000; /* Ensure it's above other content */
+    box-sizing: border-box;
+}
+
+.footer-links a {
+    color: #A0A0A0; /* Light grey */
+    text-decoration: none;
+    font-size: 0.875rem; 
+    padding: 5px 10px; 
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design - Breakpoints */
+/* Small Screens (e.g., Mobile, smaller tablets) */
+/* Using 768px as a common breakpoint for tablets/mobile */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column; /* Stack columns vertically */
+    }
+
+    .left-column {
+        /* Option 1: Banner image at the top */
+        flex: none; 
+        width: 100%;
+        height: 200px; /* Reduced height for banner */
+        /* Option 2: Omit entirely - uncomment below */
+        /* display: none; */
+    }
+
+    .right-column {
+        flex: 1; 
+        width: 100%;
+        padding: 30px 20px;
+        padding-bottom: 100px; /* Adjusted padding for taller stacked footer */
+    }
+
+    .login-form-container {
+        max-width: 100%; 
+        padding: 0 15px; 
+    }
+
+    .logo {
+        font-size: 2rem; 
+        margin-bottom: 30px;
+    }
+
+    .login-button {
+        width: 80%; 
+        padding: 12px 20px;
+        font-size: 1.1rem;
+        margin-bottom: 30px;
+    }
+
+    .footer-links {
+        flex-direction: column; 
+        align-items: center;
+        gap: 5px; /* Reduced gap for stacked links */
+        padding: 10px 0;
+    }
+
+    .footer-links a {
+        margin-bottom: 10px; 
+        font-size: 0.9rem; 
+    }
+}
+
+/* Further adjustments for very small screens if needed */
+@media (max-width: 480px) {
+    .left-column {
+        height: 150px; /* Even smaller banner for very small screens */
+    }
+    .logo {
+        font-size: 1.8rem;
+    }
+    .login-button {
+        width: 90%; /* More width for easier tapping */
+        font-size: 1rem;
+    }
+    .footer-links a {
+        font-size: 0.8rem;
+    }
+    .right-column {
+        padding-bottom: 90px; /* Fine-tune padding for very small screens if footer height changes */
+    }
+}
