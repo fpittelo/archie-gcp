@@ -99,7 +99,8 @@
                     // headers: {
                     //     'Content-Type': 'application/json', // NO LONGER NEEDED
                     // },
-                body: formData, // Send the FormData object as the body
+                    body: formData, // Send the FormData object as the body
+                    credentials: 'include' // Send cookies with the request
         });
 
             if (!response.ok) {
