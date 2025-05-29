@@ -105,6 +105,13 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_key_please_chang
 if app.secret_key == "dev_secret_key_please_change_in_prod":
     logging.warning("Using default FLASK_SECRET_KEY. Please set a strong secret key in your environment for production.")
 
+# Configure session cookie for cross-site requests (e.g., frontend on GCS, backend on Cloud Run)
+app.config.update(
+    SESSION_COOKIE_SAMESITE='None',  # Allows cookie to be sent with cross-origin requests
+    SESSION_COOKIE_SECURE=True,      # Requires HTTPS, which Cloud Run provides
+    SESSION_COOKIE_HTTPONLY=True     # Good practice: prevents client-side script access to the cookie
+)
+
 # --- Helper Functions ---
 def credentials_to_dict(credentials):
     return {'token': credentials.token,
