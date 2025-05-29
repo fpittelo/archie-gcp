@@ -267,7 +267,7 @@ def auth_google_callback():
     flow = Flow.from_client_config(
         client_config=CLIENT_SECRETS_DICT,
         scopes=None, # Scopes are not needed again here if state is used correctly
-        redirect_uri=redirect_uri
+        redirect_uri=redirect_uri_for_flow # Corrected variable name
     )
 
     try:

@@ -378,8 +378,8 @@ jobs:
 
           echo "Replacing placeholder specifically in frontend/login.html assignment with $URL_TO_SET"
           # For login.html, be specific to avoid changing the if condition's literal string.
-          # This targets 'const backendUrl = "__BACKEND_URL__";'
-          sed -i "s|const backendUrl = \"__BACKEND_URL__\";|const backendUrl = \"${URL_TO_SET}\";|" frontend/login.html
+          # This targets 'const backendUrl = '__BACKEND_URL__';' (with single quotes)
+          sed -i "s|const backendUrl = '__BACKEND_URL__';|const backendUrl = '${URL_TO_SET}';|" frontend/login.html
 
           echo "Replacement complete. Verifying content (first 5 lines containing backendUrl):"
           grep 'backendUrl' frontend/index.html | head -n 5 || echo "backendUrl line not found after replacement or file is empty."
