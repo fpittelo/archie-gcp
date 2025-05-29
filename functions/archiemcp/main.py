@@ -11,7 +11,7 @@ from google.auth.transport import requests as google_auth_requests # For verifyi
 from werkzeug.middleware.proxy_fix import ProxyFix # <--- Add this import
 
 # Unique log line for deployment verification
-logging.info("Main.py version with OAuth routes is running! - DEBUG_LOG_V2")
+logging.info("Main.py with OIDC Authentication Flow - Version 1.0")
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -108,13 +108,19 @@ if app.secret_key == "dev_secret_key_please_change_in_prod":
 # --- Helper Functions ---
 def credentials_to_dict(credentials):
     return {'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
+            'refresh_token': credentials.refresh_token, # Be cautious storing refresh tokens
             'token_uri': credentials.token_uri,
             'client_id': credentials.client_id,
             'client_secret': credentials.client_secret,
             'scopes': credentials.scopes}
 
-@app.route('/', methods=['POST', 'OPTIONS']) # Removed 'request' parameter
+# --- Constants for Frontend Redirects ---
+FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL")
+INDEX_HTML_PATH = "/index.html" # Relative path on the frontend
+LOGIN_HTML_PATH = "/login.html" # Relative path on the frontend
+
+
+@app.route('/', methods=['POST', 'OPTIONS'])
 def archiemcp():  # Removed 'request' parameter - Flask provides it automatically
     """
     HTTP Cloud Function to proxy requests to the Gemini API.
@@ -124,22 +130,41 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
     Returns:
         A tuple containing the JSON response, HTTP status code, and headers.
     """
-    headers = {
-        'Access-Control-Allow-Origin': '*',  # For development. Restrict in production.
+    # Standard headers for all responses from this endpoint
+    response_headers = {
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Content-Type': 'application/json'
     }
+    if FRONTEND_BASE_URL:
+        response_headers['Access-Control-Allow-Origin'] = FRONTEND_BASE_URL
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
+    else:
+        # Fallback for local development or when FRONTEND_BASE_URL is not set
+        response_headers['Access-Control-Allow-Origin'] = '*'
+        # Note: 'Access-Control-Allow-Credentials' cannot be true with wildcard origin.
+        # If FRONTEND_BASE_URL is not set, sessions might not work correctly across origins
+        # without further SameSite cookie configurations.
 
     if request.method == 'OPTIONS':
-        return ('', 204, headers)
+        return ('', 204, response_headers)
+
+    # --- Session Check ---
+    if 'email' not in session:
+        logging.warning("Unauthorized access attempt to query endpoint. No session email.")
+        login_redirect_url = f"{FRONTEND_BASE_URL}{LOGIN_HTML_PATH}" if FRONTEND_BASE_URL else url_for('login_google', _external=True)
+        return (json.dumps({
+            "error": "Unauthorized. Please login.",
+            "redirectTo": login_redirect_url
+        }), 401, response_headers)
+    # --- End Session Check ---
 
     if request.method != "POST":
-        return (json.dumps({"error": "Only POST requests are accepted"}), 405, headers)
+        return (json.dumps({"error": "Only POST requests are accepted after OPTIONS"}), 405, response_headers)
 
     if not gemini_model_instance:
         logging.error("Gemini model not initialized. Cannot process request.")
-        return (json.dumps({"error": "Internal server error: Model not initialized"}), 500, headers)
+        return (json.dumps({"error": "Internal server error: Model not initialized"}), 500, response_headers)
 
     # To handle multipart/form-data as sent by the frontend's FormData
     if "question" not in request.form:
@@ -147,7 +172,7 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
         request_json = request.get_json(silent=True)
         if not request_json or "question" not in request_json:
             logging.warning("Invalid request: 'question' field missing in form data or JSON body.")
-            return (json.dumps({"error": "Invalid request: 'question' field is required in form data or JSON body."}), 400, headers)
+            return (json.dumps({"error": "Invalid request: 'question' field is required in form data or JSON body."}), 400, response_headers)
         user_question = request_json["question"]
     else:
         user_question = request.form["question"]
@@ -176,16 +201,15 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
             logging.warning(f"Gemini API response structure not as expected or empty. Full response: {response}")
             gemini_answer = "Could not retrieve a valid answer from the model at this time."
 
-        return (json.dumps({"answer": gemini_answer}), 200, headers)
+        return (json.dumps({"answer": gemini_answer}), 200, response_headers)
 
     except Exception as e:
         logging.error(f"Error during Gemini API call or response processing: {e}", exc_info=True)
         # Provide a more generic error message to the client for security
-        return (json.dumps({"error": "An internal error occurred while processing your request."}), 500, headers)
+        return (json.dumps({"error": "An internal error occurred while processing your request."}), 500, response_headers)
 
 # --- Google OAuth Routes ---
-
-@app.route('/auth/google', methods=['GET'])
+@app.route('/login/google', methods=['GET']) # Matches href in login.html
 def auth_google_initiate():
     """Initiates the Google OAuth 2.0 login flow."""
     if not CLIENT_SECRETS_DICT:
@@ -193,8 +217,16 @@ def auth_google_initiate():
         return "OAuth is not configured correctly on the server.", 500
 
     redirect_uri = url_for('auth_google_callback', _external=True)
-    logging.info(f"Calculated redirect_uri for OAuth: {redirect_uri}")
-
+    logging.info(f"Calculated redirect_uri for OAuth flow: {redirect_uri}")
+    # The redirect_uri must match *exactly* one of the "Authorized redirect URIs"
+    # configured in your GCP OAuth 2.0 Client ID settings.
+    # It should be: YOUR_BACKEND_URL/auth/google/callback
+    try:
+        redirect_uri_for_flow = url_for('auth_google_callback', _external=True)
+        logging.info(f"Calculated redirect_uri for OAuth flow: {redirect_uri_for_flow}")
+    except RuntimeError as e:
+        logging.error(f"RuntimeError generating redirect_uri: {e}. Ensure app is handling requests or ProxyFix is active.", exc_info=True)
+        return "Error generating redirect URI. Server configuration issue.", 500
     flow = Flow.from_client_config(
         client_config=CLIENT_SECRETS_DICT,
         scopes=[
@@ -202,30 +234,36 @@ def auth_google_initiate():
             "https://www.googleapis.com/auth/userinfo.email",
             "openid"
         ],
-        redirect_uri=redirect_uri
+        redirect_uri=redirect_uri_for_flow
     )
 
     authorization_url, state = flow.authorization_url(
-        access_type='offline',
-        prompt='consent'
+        access_type='offline',  # Gets a refresh token
+        prompt='consent'        # Ensures the consent screen is shown
     )
-    session['oauth_state'] = state
-    logging.info(f"Redirecting to Google authorization URL. State: {state}")
+    session['oauth_state'] = state # Store state in session for CSRF protection
+    logging.info(f"Redirecting user to Google authorization URL. OAuth State: {state[:10]}...")
     return redirect(authorization_url)
 
-@app.route('/auth/google/callback', methods=['GET'])
+@app.route('/auth/google/callback', methods=['GET']) # This must be an "Authorized redirect URI" in GCP
 def auth_google_callback():
     """Handles the callback from Google after user authentication."""
-    state = session.pop('oauth_state', None)
-    if not state or state != request.args.get('state'):
-        logging.error("OAuth state mismatch. Possible CSRF attack.")
+    # CSRF protection: Check state
+    expected_state = session.pop('oauth_state', None)
+    received_state = request.args.get('state')
+    if not expected_state or expected_state != received_state:
+        logging.error(f"OAuth state mismatch. Expected: '{expected_state}', Received: '{received_state}'. Possible CSRF attack.")
         return "Invalid state parameter.", 400
 
     if not CLIENT_SECRETS_DICT:
         logging.error("OAuth client secrets not configured. Cannot process callback.")
         return "OAuth is not configured correctly on the server.", 500
-
-    redirect_uri = url_for('auth_google_callback', _external=True) # Must match what was used in initiate
+    # Recreate the flow object with the same redirect_uri used in the authorization request
+    try:
+        redirect_uri_for_flow = url_for('auth_google_callback', _external=True)
+    except RuntimeError as e:
+        logging.error(f"RuntimeError generating redirect_uri for callback: {e}.", exc_info=True)
+        return "Error generating redirect URI during callback. Server configuration issue.", 500
     flow = Flow.from_client_config(
         client_config=CLIENT_SECRETS_DICT,
         scopes=None, # Scopes are not needed again here if state is used correctly
@@ -234,11 +272,11 @@ def auth_google_callback():
 
     try:
         # Use the full URL for `fetch_token` as it contains the state and code
+        # Use the full URL from the request to fetch the token
         flow.fetch_token(authorization_response=request.url)
     except Exception as e:
         logging.error(f"Failed to fetch token: {e}", exc_info=True)
-        return "Failed to fetch authorization token.", 500
-
+        return "Failed to fetch authorization token from Google. Please try logging in again.", 500
     credentials = flow.credentials
     if not credentials or not credentials.id_token:
         logging.error("Failed to obtain ID token from credentials.")
@@ -253,55 +291,51 @@ def auth_google_callback():
             google_auth_requests.Request(),
             CLIENT_SECRETS_DICT['web']['client_id']
         )
-
         # Store user information in session
-        session['google_id'] = id_info.get('sub')
+        session['google_id'] = id_info.get('sub') # Subject (unique user ID)
         session['name'] = id_info.get('name')
         session['email'] = id_info.get('email')
         session['picture'] = id_info.get('picture')
-        session['credentials'] = credentials_to_dict(credentials) # Helper to store serializable credentials
+        # Optionally store serializable credentials if needed for API calls or refresh
+        # session['credentials'] = credentials_to_dict(credentials)
 
-        logging.info(f"User {session['email']} logged in successfully.")
+        logging.info(f"User '{session['email']}' logged in successfully. Google ID: {session['google_id']}")
 
-        FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL")
+        # --- Redirect to the frontend's index.html ---
         if FRONTEND_BASE_URL:
-            # Redirect to the configured frontend URL.
-            # This should be the URL where your index.html is served.
-            # e.g., "https://storage.googleapis.com/your-frontend-bucket"
-            redirect_target_url = FRONTEND_BASE_URL
-            logging.info(f"Redirecting to FRONTEND_BASE_URL: {redirect_target_url}")
+            target_url = f"{FRONTEND_BASE_URL}{INDEX_HTML_PATH}"
+            logging.info(f"Redirecting authenticated user to: {target_url}")
+            return redirect(target_url)
         else:
             logging.warning("FRONTEND_BASE_URL environment variable not set. "
-                            "Falling back to internal '/app' page. "
-                            "Set FRONTEND_BASE_URL to your frontend's main page URL.")
-            redirect_target_url = url_for('archiemcp_page') # Fallback
-        return redirect(redirect_target_url)
-    except ValueError as e:
+                            "Cannot redirect to frontend index.html. "
+                            "User is logged in but will not be redirected to the main app page.")
+            # Fallback: could be a simple success message or an internal app page if one existed
+            return "Login successful, but frontend redirect URL is not configured. Please contact support.", 200
+
+    except ValueError as e: # id_token.verify_oauth2_token can raise ValueError on failure
         logging.error(f"ID token verification failed: {e}", exc_info=True)
         return "ID token verification failed.", 400
+    except Exception as e: # Catch any other unexpected errors during token verification/session setting
+        logging.error(f"Unexpected error after fetching token: {e}", exc_info=True)
+        return "An unexpected error occurred during login. Please try again.", 500
 
-# --- Placeholder App Page and Logout ---
-@app.route('/app', methods=['GET']) # Example route for after login
-def archiemcp_page():
-    if 'email' not in session:
-        # If FRONTEND_BASE_URL is not set and user lands here unauthenticated,
-        # redirect to login.
-        return redirect(url_for('auth_google_initiate'))
-
-    user_email = session.get('email', 'Guest')
-    user_name = session.get('name', 'User')
-    # This page would typically be your main application interface
-    # For now, just a welcome message.
-    return f"""
-        <h1>Welcome to Archie MCP (Fallback Page)</h1>
-        <p>Hello, {user_name} ({user_email})! You are logged in.</p>
-        <p><a href="{url_for('logout')}">Logout</a></p>
-        <p><em>Note: You are seeing this fallback page because the FRONTEND_BASE_URL might not be configured correctly. Normally, you would be redirected to the main application page.</em></p>
-    """
 @app.route('/logout')
 def logout():
+    """Clears the user session and redirects to the login page."""
+    user_email = session.get('email', 'Unknown user')
     session.clear()
-    return redirect(url_for('auth_google_initiate')) # Or redirect to a public landing page
+    logging.info(f"User '{user_email}' logged out.")
+
+    if FRONTEND_BASE_URL:
+        target_url = f"{FRONTEND_BASE_URL}{LOGIN_HTML_PATH}"
+        logging.info(f"Redirecting logged out user to: {target_url}")
+        return redirect(target_url)
+    else:
+        logging.warning("FRONTEND_BASE_URL not set. Cannot redirect to frontend login.html. "
+                        "Redirecting to backend login initiation as fallback.")
+        # Fallback: redirect to the backend's own login initiation route
+        return redirect(url_for('login_google'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
