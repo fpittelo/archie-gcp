@@ -39,12 +39,25 @@
     <script>
         // This placeholder will be replaced by the CI/CD pipeline in deploy.yaml
         const backendUrl = '__BACKEND_URL__';
+        console.log('[Login Script] Initial backendUrl placeholder value:', backendUrl);
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('[Login Script] DOMContentLoaded event fired.');
             const loginButton = document.getElementById('google-login-button');
+
+            if (!loginButton) {
+                console.error('[Login Script] Login button not found!');
+                return;
+            }
+            console.log('[Login Script] Login button found:', loginButton);
+            console.log(`[Login Script] Checking condition: loginButton && backendUrl ('${backendUrl}') && backendUrl !== '' && backendUrl !== '__BACKEND_URL__'`);
+
             if (loginButton && backendUrl && backendUrl !== '' && backendUrl !== '__BACKEND_URL__') {
+                console.log('[Login Script] Condition TRUE. Setting href.');
                 loginButton.href = `${backendUrl}/login/google`; // Your backend endpoint to initiate Google OAuth
+                console.log('[Login Script] Login button href set to:', loginButton.href);
             } else if (loginButton) {
+                console.warn('[Login Script] Condition FALSE. Backend URL not configured or is placeholder.');
                 loginButton.textContent = 'Login (Backend URL not configured)';
                 loginButton.href = '#'; // Prevent navigation if URL is not set
                 loginButton.style.backgroundColor = 'grey'; // Indicate it's disabled
