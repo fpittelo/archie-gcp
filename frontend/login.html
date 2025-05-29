@@ -23,10 +23,10 @@
 
 
                     <!-- Login Button -->
-                    <!-- IMPORTANT: Replace '#' with your actual OIDC login URL or trigger -->
-                    <a href="#" class="login-button">Login</a>
+                    <a href="#" id="google-login-button" class="login-button">Login with Google</a>
                 </div>
             </div>
+
             <!-- Footer Links - MOVED HERE, inside right-column but outside login-form-container -->
             <div class="footer-links">
                 <a href="#">Accessibility</a>
@@ -35,5 +35,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // This placeholder will be replaced by the CI/CD pipeline in deploy.yaml
+        const backendUrl = '__BACKEND_URL__';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginButton = document.getElementById('google-login-button');
+            if (loginButton && backendUrl && backendUrl !== '' && backendUrl !== '__BACKEND_URL__') {
+                loginButton.href = `${backendUrl}/login/google`; // Your backend endpoint to initiate Google OAuth
+            } else if (loginButton) {
+                loginButton.textContent = 'Login (Backend URL not configured)';
+                loginButton.href = '#'; // Prevent navigation if URL is not set
+                loginButton.style.backgroundColor = 'grey'; // Indicate it's disabled
+                console.error('Backend URL is not configured for the login button. Placeholder was: __BACKEND_URL__');
+            }
+        });
+    </script>
 </body>
 </html>
