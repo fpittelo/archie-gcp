@@ -47,8 +47,12 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
       }
       
       env {
-        name  = "FRONTEND_BASE_URL"
-      value = var.frontend_base_url
+        name  = "FRONTEND_REDIRECT_BASE_URL"
+        value = var.frontend_redirect_base_url
+      }
+      env {
+        name  = "FRONTEND_CORS_ORIGIN"
+        value = var.frontend_cors_origin
       }
 
       resources {
