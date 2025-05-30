@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - EPFL Archie</title>
+    <link rel="stylesheet" href="css/login-styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Left Column (Visual Element) -->
+        <div class="left-column">
+            <!-- Background image is set via CSS: url('../flavicons/epfl-campus-aerial.jpg') -->
+        </div>
+
+        <!-- Right Column (Login Elements) -->
+        <div class="right-column">
+            <div class="login-form-container">
+                <div class="login-main-content"> <!-- Wrapper for logo and button -->
+                    <div class="logo">
+                        <img src="flavicons/logo-epfl.png" alt="EPFL Logo" class="logo-epfl-img"> <span class="logo-archie">Archie</span>
+                    </div>
+
+
+                    <!-- Login Button -->
+                    <a href="#" id="google-login-button" class="login-button">Login with Google</a>
+                </div>
+            </div>
+
+            <!-- Footer Links - MOVED HERE, inside right-column but outside login-form-container -->
+            <div class="footer-links">
+                <a href="#">Accessibility</a>
+                <a href="#">Disclaimer</a>
+                <a href="#">Privacy policy</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // This placeholder will be replaced by the CI/CD pipeline in deploy.yaml
+        const backendUrl = '__BACKEND_URL__';
+        console.log('[Login Script] Initial backendUrl placeholder value:', backendUrl);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[Login Script] DOMContentLoaded event fired.');
+            const loginButton = document.getElementById('google-login-button');
+
+            if (!loginButton) {
+                console.error('[Login Script] Login button not found!');
+                return;
+            }
+            console.log('[Login Script] Login button found:', loginButton);
+            console.log(`[Login Script] Checking condition: loginButton && backendUrl ('${backendUrl}') && backendUrl !== '' && backendUrl !== '__BACKEND_URL__'`);
+
+            if (loginButton && backendUrl && backendUrl !== '' && backendUrl !== '__BACKEND_URL__') {
+                console.log('[Login Script] Condition TRUE. Setting href.');
+                loginButton.href = `${backendUrl}/login/google`; // Your backend endpoint to initiate Google OAuth
+                console.log('[Login Script] Login button href set to:', loginButton.href);
+            } else if (loginButton) {
+                console.warn('[Login Script] Condition FALSE. Backend URL not configured or is placeholder.');
+                loginButton.textContent = 'Login (Backend URL not configured)';
+                loginButton.href = '#'; // Prevent navigation if URL is not set
+                loginButton.style.backgroundColor = 'grey'; // Indicate it's disabled
+                console.error('Backend URL is not configured for the login button. Placeholder was: __BACKEND_URL__');
+            }
+        });
+    </script>
+</body>
+</html>

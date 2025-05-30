@@ -32,6 +32,28 @@ resource "google_cloud_run_v2_service" "archiemcp_service" {
         value = var.gemini_model_name # You'll need to define/pass this Terraform variable too
                                      # e.g., "gemini-2.0-pro-exp-02-05" or pass from GitHub Actions
       }
+      env {
+        name  = "GOOGLE_OAUTH_CLIENT_ID"
+        value = var.google_oauth_client_id # You will need to define this variable
+      }
+      env {
+        name  = "GOOGLE_OAUTH_CLIENT_SECRET"
+        value = var.google_oauth_client_secret # You will need to define this variable
+                                               # and mark it as sensitive
+      }
+      env {
+        name  = "FLASK_SECRET_KEY"
+        value = var.flask_secret_key # Use the Terraform variable
+      }
+      
+      env {
+        name  = "FRONTEND_REDIRECT_BASE_URL"
+        value = var.frontend_redirect_base_url
+      }
+      env {
+        name  = "FRONTEND_CORS_ORIGIN"
+        value = var.frontend_cors_origin
+      }
 
       resources {
         limits = {
@@ -152,6 +174,11 @@ resource "google_storage_bucket" "archiemcp_bucket" {
 
   uniform_bucket_level_access = true
   force_destroy               = true # OK for dev, use with caution in prod
+
+  website {
+    main_page_suffix = "index.html"
+    not_found_page   = "index.html" # Or a specific 404.html if you have one
+  }
 }
 
 
@@ -159,4 +186,17 @@ resource "google_storage_bucket_iam_member" "public_website_viewer" {
   bucket = google_storage_bucket.archiemcp_bucket.name // Uses the name of your existing bucket
   role   = "roles/storage.objectViewer"
   member = "allUsers"
+}
+
+# --- Variables for OAuth ---
+variable "google_oauth_client_id" {
+  description = "The Google OAuth 2.0 Client ID for web application authentication (obtained from GCP Console)."
+  type        = string
+  sensitive   = true # Mark as sensitive to prevent output in logs
+}
+
+variable "google_oauth_client_secret" {
+  description = "The Google OAuth 2.0 Client Secret for web application authentication (obtained from GCP Console)."
+  type        = string
+  sensitive   = true # Mark as sensitive to prevent output in logs
 }

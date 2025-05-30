@@ -52,3 +52,24 @@ variable "gemini_model_name" {
   description = "The name of the Gemini model to be used."
   type        = string
 }
+
+variable "upload_frontend_files" {
+  description = "Whether to upload frontend files via Terraform. Set to false if a later step (e.g., in CI/CD) handles frontend file uploads after placeholder replacement."
+  type        = bool
+  default     = true
+}
+
+variable "flask_secret_key" {
+  description = "A strong secret key for Flask session management, passed from GitHub Actions secrets."
+  type        = string
+}
+
+variable "frontend_redirect_base_url" {
+  description = "The base URL for redirecting to the frontend application (e.g., https://storage.googleapis.com/bucket-name)."
+  type        = string
+}
+
+variable "frontend_cors_origin" {
+  description = "The origin allowed for CORS requests from the frontend (e.g., https://storage.googleapis.com)."
+  type        = string
+}
