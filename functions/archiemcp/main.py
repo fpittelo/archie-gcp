@@ -33,12 +33,16 @@ raw_location_ch_manual = os.environ.get("GCP_REGION_EU")
 raw_model_id_manual = os.environ.get("GEMINI_MODEL")
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+FRONTEND_REDIRECT_BASE_URL_ENV = os.environ.get("FRONTEND_REDIRECT_BASE_URL")
+FRONTEND_CORS_ORIGIN_ENV = os.environ.get("FRONTEND_CORS_ORIGIN")
 
 logging.info(f"Read (manual) GCP_PROJECT. Value: '{raw_project_id_manual}', Type: {type(raw_project_id_manual)}")
 logging.info(f"Read (manual) GCP_REGION_EU. Value: '{raw_location_ch_manual}', Type: {type(raw_location_ch_manual)}")
 logging.info(f"Read (manual) GEMINI_MODEL. Value: '{raw_model_id_manual}', Type: {type(raw_model_id_manual)}")
 logging.info(f"Read GOOGLE_OAUTH_CLIENT_ID. Is set: {bool(GOOGLE_OAUTH_CLIENT_ID)}")
 logging.info(f"Read GOOGLE_OAUTH_CLIENT_SECRET. Is set: {bool(GOOGLE_OAUTH_CLIENT_SECRET)}")
+logging.info(f"Read FRONTEND_REDIRECT_BASE_URL. Value: '{FRONTEND_REDIRECT_BASE_URL_ENV}'")
+logging.info(f"Read FRONTEND_CORS_ORIGIN. Value: '{FRONTEND_CORS_ORIGIN_ENV}'")
 
 
 PROJECT_ID = raw_project_id_manual
@@ -105,6 +109,13 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_key_please_chang
 if app.secret_key == "dev_secret_key_please_change_in_prod":
     logging.warning("Using default FLASK_SECRET_KEY. Please set a strong secret key in your environment for production.")
 
+# Configure session cookie for cross-site requests (e.g., frontend on GCS, backend on Cloud Run)
+app.config.update(
+    SESSION_COOKIE_SAMESITE='None',  # Allows cookie to be sent with cross-origin requests
+    SESSION_COOKIE_SECURE=True,      # Requires HTTPS, which Cloud Run provides
+    SESSION_COOKIE_HTTPONLY=True     # Good practice: prevents client-side script access to the cookie
+)
+
 # --- Helper Functions ---
 def credentials_to_dict(credentials):
     return {'token': credentials.token,
@@ -115,7 +126,9 @@ def credentials_to_dict(credentials):
             'scopes': credentials.scopes}
 
 # --- Constants for Frontend Redirects ---
-FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL")
+# Use the specific environment variables defined earlier
+FRONTEND_REDIRECT_BASE_URL = FRONTEND_REDIRECT_BASE_URL_ENV
+FRONTEND_CORS_ORIGIN = FRONTEND_CORS_ORIGIN_ENV
 INDEX_HTML_PATH = "/index.html" # Relative path on the frontend
 LOGIN_HTML_PATH = "/login.html" # Relative path on the frontend
 
@@ -136,13 +149,13 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
         'Access-Control-Allow-Headers': 'Content-Type',
         'Content-Type': 'application/json'
     }
-    if FRONTEND_BASE_URL:
-        response_headers['Access-Control-Allow-Origin'] = FRONTEND_BASE_URL
+    if FRONTEND_CORS_ORIGIN:
+        response_headers['Access-Control-Allow-Origin'] = FRONTEND_CORS_ORIGIN
         response_headers['Access-Control-Allow-Credentials'] = 'true'
     else:
         # Fallback for local development or when FRONTEND_BASE_URL is not set
         response_headers['Access-Control-Allow-Origin'] = '*'
-        # Note: 'Access-Control-Allow-Credentials' cannot be true with wildcard origin.
+        # Note: 'Access-Control-Allow-Credentials' cannot be 'true' with wildcard origin.
         # If FRONTEND_BASE_URL is not set, sessions might not work correctly across origins
         # without further SameSite cookie configurations.
 
@@ -152,7 +165,7 @@ def archiemcp():  # Removed 'request' parameter - Flask provides it automaticall
     # --- Session Check ---
     if 'email' not in session:
         logging.warning("Unauthorized access attempt to query endpoint. No session email.")
-        login_redirect_url = f"{FRONTEND_BASE_URL}{LOGIN_HTML_PATH}" if FRONTEND_BASE_URL else url_for('login_google', _external=True)
+        login_redirect_url = f"{FRONTEND_REDIRECT_BASE_URL}{LOGIN_HTML_PATH}" if FRONTEND_REDIRECT_BASE_URL else url_for('login_google', _external=True)
         return (json.dumps({
             "error": "Unauthorized. Please login.",
             "redirectTo": login_redirect_url
@@ -302,12 +315,12 @@ def auth_google_callback():
         logging.info(f"User '{session['email']}' logged in successfully. Google ID: {session['google_id']}")
 
         # --- Redirect to the frontend's index.html ---
-        if FRONTEND_BASE_URL:
-            target_url = f"{FRONTEND_BASE_URL}{INDEX_HTML_PATH}"
+        if FRONTEND_REDIRECT_BASE_URL:
+            target_url = f"{FRONTEND_REDIRECT_BASE_URL}{INDEX_HTML_PATH}"
             logging.info(f"Redirecting authenticated user to: {target_url}")
             return redirect(target_url)
         else:
-            logging.warning("FRONTEND_BASE_URL environment variable not set. "
+            logging.warning("FRONTEND_REDIRECT_BASE_URL environment variable not set. "
                             "Cannot redirect to frontend index.html. "
                             "User is logged in but will not be redirected to the main app page.")
             # Fallback: could be a simple success message or an internal app page if one existed
@@ -327,12 +340,12 @@ def logout():
     session.clear()
     logging.info(f"User '{user_email}' logged out.")
 
-    if FRONTEND_BASE_URL:
-        target_url = f"{FRONTEND_BASE_URL}{LOGIN_HTML_PATH}"
+    if FRONTEND_REDIRECT_BASE_URL:
+        target_url = f"{FRONTEND_REDIRECT_BASE_URL}{LOGIN_HTML_PATH}"
         logging.info(f"Redirecting logged out user to: {target_url}")
         return redirect(target_url)
     else:
-        logging.warning("FRONTEND_BASE_URL not set. Cannot redirect to frontend login.html. "
+        logging.warning("FRONTEND_REDIRECT_BASE_URL not set. Cannot redirect to frontend login.html. "
                         "Redirecting to backend login initiation as fallback.")
         # Fallback: redirect to the backend's own login initiation route
         return redirect(url_for('login_google'))

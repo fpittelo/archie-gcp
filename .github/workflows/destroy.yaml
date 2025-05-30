@@ -36,6 +36,13 @@ jobs:
     env:
       # Make the selected environment name available locally in the job if needed
       TARGET_ENVIRONMENT: ${{ github.event.inputs.environment }}
+      # Add secrets needed by Terraform that are not in .tfvars files
+      GCP_OAUTH_CLIENT_ID: ${{ secrets.GCP_OAUTH_CLIENT_ID }}
+      GCP_OAUTH_CLIENT_SECRET: ${{ secrets.GCP_OAUTH_CLIENT_SECRET }}
+      FLASK_SECRET_KEY_FROM_GHA: ${{ secrets.FLASK_SECRET_KEY }}
+      FRONTEND_REDIRECT_BASE_URL_FROM_GHA: ${{ secrets.FRONTEND_REDIRECT_BASE_URL }}
+      FRONTEND_CORS_ORIGIN_FROM_GHA: ${{ secrets.FRONTEND_CORS_ORIGIN }}
+      GCP_MCP_SERVICE_ACCOUNT: ${{ secrets.GCP_MCP_SERVICE_ACCOUNT }} # For mcp_service_account_email TF var
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -71,7 +78,13 @@ jobs:
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=destroyplaceholder" \
             -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
-            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
+            -var="mcp_service_account_email=${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
+            -var="google_oauth_client_id=${{ env.GCP_OAUTH_CLIENT_ID }}" \
+            -var="google_oauth_client_secret=${{ env.GCP_OAUTH_CLIENT_SECRET }}" \
+            -var="flask_secret_key=${{ env.FLASK_SECRET_KEY_FROM_GHA }}" \
+            -var="frontend_redirect_base_url=${{ env.FRONTEND_REDIRECT_BASE_URL_FROM_GHA }}" \
+            -var="frontend_cors_origin=${{ env.FRONTEND_CORS_ORIGIN_FROM_GHA }}"
         working-directory: infra/
 
       - name: Terraform Destroy
@@ -86,7 +99,13 @@ jobs:
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=destroyplaceholder" \
             -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
-            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}"
+            -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
+            -var="mcp_service_account_email=${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
+            -var="google_oauth_client_id=${{ env.GCP_OAUTH_CLIENT_ID }}" \
+            -var="google_oauth_client_secret=${{ env.GCP_OAUTH_CLIENT_SECRET }}" \
+            -var="flask_secret_key=${{ env.FLASK_SECRET_KEY_FROM_GHA }}" \
+            -var="frontend_redirect_base_url=${{ env.FRONTEND_REDIRECT_BASE_URL_FROM_GHA }}" \
+            -var="frontend_cors_origin=${{ env.FRONTEND_CORS_ORIGIN_FROM_GHA }}"
         working-directory: infra/
 
   cleanup_artifact_registry_images:

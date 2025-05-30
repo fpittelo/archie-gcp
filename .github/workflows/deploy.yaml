@@ -229,8 +229,9 @@ jobs:
       # Secrets for OAuth Client ID/Secret (obtained manually from GCP Console)
       GCP_OAUTH_CLIENT_ID: ${{ secrets.GCP_OAUTH_CLIENT_ID }}
       GCP_OAUTH_CLIENT_SECRET: ${{ secrets.GCP_OAUTH_CLIENT_SECRET }}
-      FLASK_SECRET_KEY_FROM_GHA: ${{ secrets.FLASK_SECRET_KEY }} # Add this line
-      FRONTEND_BASE_URL_FROM_SECRET: ${{ secrets.FRONTEND_BASE_URL }} # Add this line
+      FLASK_SECRET_KEY_FROM_GHA: ${{ secrets.FLASK_SECRET_KEY }}
+      FRONTEND_REDIRECT_BASE_URL_FROM_GHA: ${{ secrets.FRONTEND_REDIRECT_BASE_URL }}
+      FRONTEND_CORS_ORIGIN_FROM_GHA: ${{ secrets.FRONTEND_CORS_ORIGIN }}
       OAUTH_SUPPORT_EMAIL: ${{ secrets.OAUTH_SUPPORT_EMAIL }} # Store your support email as a secret
     outputs: # Expose the service URI for other jobs
       archie_mcp_service_uri: ${{ steps.get_service_uri.outputs.SERVICE_URI }}
@@ -281,7 +282,8 @@ jobs:
             -var="google_oauth_client_id=${{ env.GCP_OAUTH_CLIENT_ID }}" \
             -var="google_oauth_client_secret=${{ env.GCP_OAUTH_CLIENT_SECRET }}" \
             -var="flask_secret_key=${{ env.FLASK_SECRET_KEY_FROM_GHA }}" \
-            -var="frontend_base_url=${{ env.FRONTEND_BASE_URL_FROM_SECRET }}"
+            -var="frontend_redirect_base_url=${{ env.FRONTEND_REDIRECT_BASE_URL_FROM_GHA }}" \
+            -var="frontend_cors_origin=${{ env.FRONTEND_CORS_ORIGIN_FROM_GHA }}"
 
       - name: Get Cloud Run Service URI
         id: get_service_uri
