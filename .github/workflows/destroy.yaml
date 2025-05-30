@@ -77,7 +77,7 @@ jobs:
             -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=destroyplaceholder" \
-            -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \ # Placeholder is fine for destroy
+            -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="mcp_service_account_email=${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
             -var="google_oauth_client_id=${{ env.GCP_OAUTH_CLIENT_ID }}" \
@@ -98,7 +98,7 @@ jobs:
             -var-file="${{ env.TARGET_ENVIRONMENT }}.tfvars" \
             -var="github_workspace=${{ github.workspace }}" \
             -var="github_sha=destroyplaceholder" \
-            -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \ # Placeholder is fine for destroy
+            -var="archie_mcp_image_uri=${{ env.GCP_REGION_EU }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/archie-backend/${{ vars.GCP_ARTIFACT_IMAGE_NAME }}:placeholder" \
             -var="deployer_service_account_email=${{ env.GCP_SERVICE_ACCOUNT }}" \
             -var="mcp_service_account_email=${{ env.GCP_MCP_SERVICE_ACCOUNT }}" \
             -var="google_oauth_client_id=${{ env.GCP_OAUTH_CLIENT_ID }}" \
