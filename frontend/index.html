@@ -243,7 +243,8 @@
             // 'google_profile_picture_url' and 'user_role' must be set in localStorage
             // during or after the login process.
             const idTokenHint = localStorage.getItem('id_token'); // Used for OIDC logout if needed
-            // Construct the post logout redirect URI to point to login.html at the same origin
+            // This placeholder will be replaced by the CI/CD pipeline
+            const backendUrl = '__BACKEND_URL__'; // Define backendUrl here
             const postLogoutRedirectUri = window.location.origin + '/login.html';
             const profilePictureUrl = localStorage.getItem('google_profile_picture_url');
             const userRole = localStorage.getItem('user_role');
