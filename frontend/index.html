@@ -293,17 +293,22 @@
                 // Add any other items you store in localStorage for the session
                 console.log('Local session data cleared.');
 
-                // 2. Construct the Google logout URL
-                // This URL logs the user out of their Google account and then redirects.
-                // Ensure 'postLogoutRedirectUri' (e.g., your login.html) is a URL whitelisted
-                // as an "Authorized redirect URI" in your Google Cloud OAuth client settings if Google's logout
-                // endpoint strictly enforces it for the 'continue' parameter.
-                // For simple redirection after Google's own logout, this structure is common.
-                let logoutRedirectUrl = 'https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue=' + encodeURIComponent(postLogoutRedirectUri);
-                console.log('Redirecting to Google logout with continue URL: ' + postLogoutRedirectUri);
-
-                // --- Perform the redirection ---
-                window.location.href = logoutRedirectUrl;
+                // 2. Redirect to the application's backend logout endpoint.
+                // The backend will clear its session and then redirect to login.html.
+                // The 'backendUrl' variable should be defined globally (replaced by CI/CD).
+                if (typeof backendUrl !== 'undefined' && backendUrl && backendUrl !== '__BACKEND_URL__') {
+                    // Ensure backendUrl doesn't have a trailing slash before appending /logout
+                    const cleanBackendUrl = backendUrl.replace(/\/$/, '');
+                    const appLogoutUrl = `${cleanBackendUrl}/logout`;
+                    console.log('Redirecting to application logout URL:', appLogoutUrl);
+                    window.location.href = appLogoutUrl;
+                } else {
+                    console.error('Backend URL is not configured. Cannot perform application logout. Current backendUrl:', backendUrl);
+                    // Fallback: If backend URL isn't set, just redirect to login page after clearing local storage.
+                    // This won't clear the server-side session but is better than doing nothing.
+                    alert('Logout partially completed. Please close your browser to ensure full logout. Backend configuration issue detected.');
+                    window.location.href = postLogoutRedirectUri; // Redirect to login.html
+                }
             }
 
             // --- Event Listener for Logout Button ---
