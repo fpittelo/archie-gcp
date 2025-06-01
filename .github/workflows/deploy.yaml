@@ -63,31 +63,6 @@ jobs:
 #           echo "created=true" >> $GITHUB_OUTPUT
 #         fi
 
-
-      - name: Grant permissions to SA for Cloud Functions
-        run: |
-          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/serviceusage.serviceUsageAdmin"
-      
-      - name: grant service account permissions
-        run: |
-          gcloud projects add-iam-policy-binding ${{ env.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/cloudfunctions.developer"
-
-      - name: Grant Cloud Run Admin Role
-        run: |
-          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/run.admin"
-
-      - name: Grant Artifact Registry Repo Admin Role
-        run: |
-          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
-            --member="serviceAccount:${{ env.GCP_SERVICE_ACCOUNT }}" \
-            --role="roles/artifactregistry.repoAdmin"
-
       - name: Activate Artifact Registry API
         run: |
           gcloud services enable artifactregistry.googleapis.com \

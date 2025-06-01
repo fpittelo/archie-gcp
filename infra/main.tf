@@ -167,6 +167,36 @@ resource "google_project_iam_member" "function_build_sa_artifact_registry_writer
   member  = google_service_account.archiemcp_function_sa.member
 }
 
+# --- Permissions for the Deployer Service Account (GitHub Actions SA) ---
+# These permissions allow the GitHub Actions SA to manage resources during deployment.
+
+resource "google_project_iam_member" "deployer_sa_service_usage_admin" {
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageAdmin"
+  member  = "serviceAccount:${var.deployer_service_account_email}"
+}
+
+resource "google_project_iam_member" "deployer_sa_cloudfunctions_developer" {
+  project = var.project_id
+  role    = "roles/cloudfunctions.developer" # Consider if roles/run.developer is more appropriate if only using Cloud Run
+  member  = "serviceAccount:${var.deployer_service_account_email}"
+}
+
+resource "google_project_iam_member" "deployer_sa_run_admin" {
+  project = var.project_id
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${var.deployer_service_account_email}"
+}
+
+resource "google_project_iam_member" "deployer_sa_artifactregistry_repo_admin" {
+  project = var.project_id
+  role    = "roles/artifactregistry.repoAdmin" # Allows managing repositories
+  member  = "serviceAccount:${var.deployer_service_account_email}"
+}
+
+# --- End of Permissions for Deployer Service Account ---
+
+
 resource "google_storage_bucket" "archiemcp_bucket" {
   name                        = var.storage_bucket
   project                     = var.project_id
