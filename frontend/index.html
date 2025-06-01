@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <!-- Cache Control Meta Tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- End Cache Control Meta Tags -->
+
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Archie Query Page</title>
 
@@ -26,6 +32,102 @@
     <link rel="stylesheet" href="css/elements.min.css">
     <link rel="stylesheet" href="css/app.css">
 
+    <style>
+        .header-light { /* Style existing header for flex layout */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px; /* Adjust padding as needed */
+            border-bottom: 1px solid #e5e7eb; /* Optional: adds a subtle line below header */
+        }
+
+        .header-light .logo img {
+            height: 40px; /* Adjust logo height for better alignment */
+            width: auto;
+        }
+
+        .user-info-logout-container {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Space between elements */
+        }
+        .user-role {
+            font-size: 0.875rem; /* 14px */
+            font-weight: 500;
+            color: #374151; /* gray-700 */
+            padding: 6px 10px;
+            background-color: #e5e7eb; /* gray-200 */
+            border-radius: 6px; /* rounded-md */
+            white-space: nowrap;
+        }
+        .profile-picture {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ffffff; /* white border */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .profile-picture-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e5e7eb; /* gray-200 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4b5563; /* gray-600 */
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .profile-picture-placeholder svg {
+            width: 24px; /* Adjust icon size if needed */
+            height: 24px;
+        }
+        .logout-button {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            font-weight: 500;
+            font-size: 0.875rem; /* 14px */
+            padding: 8px 16px; /* Slightly adjusted padding */
+            border-radius: 8px; /* rounded-lg */
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+        .logout-button:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+
+        /* --- Attempt to hide privacy pop-ups/cookie banners --- */
+        /* Inspect the pop-up in your browser to find its specific ID or class if these don't work. */
+        /* Common selectors for such elements: */
+        .cookie-banner, .cookie-consent, .cookie-notice, .gdpr-banner, .privacy-popup, #cookieConsent, #privacyNotice {
+            display: none !important;
+        }
+
+        /* Footer text font size reduction */
+        .footer-legal p, .footer-legal-links a {
+            font-size: 0.8rem; /* Adjust as needed */
+        }
+
+        /* Remove line from footer (border, shadow, or pseudo-elements) */
+        .footer-light,
+        .footer-light .container-grid { /* Target .container-grid specifically within .footer-light */
+            border: none !important;
+            box-shadow: none !important; /* Removes any box-shadow that might appear as a line */
+        }
+
+        /* Attempt to hide pseudo-elements that might be creating a line */
+        .footer-light::before, .footer-light::after,
+        .footer-light .container-grid::before, .footer-light .container-grid::after {
+            display: none !important;
+            content: "" !important; /* Ensure no content is rendered by them */
+            border: none !important; /* Just in case they use borders */
+        }
+    </style>
 </head>
 <body>
 
@@ -33,6 +135,14 @@
         <a class="logo" href="https://www.epfl.ch/en/">
 		<img src="https://www.epfl.ch/wp-content/themes/wp-theme-2018/assets/svg/epfl-logo.svg" alt="Logo EPFL, École polytechnique fédérale de Lausanne" class="img-fluid">
 	</a>
+        <div class="user-info-logout-container">
+            <span id="userRoleDisplay" class="user-role" style="display: none;"></span>
+            <img id="profilePic" class="profile-picture" src="https://placehold.co/40x40/E2E8F0/4A5568?text=U" alt="User Profile Picture" style="display: none;">
+            <div id="profilePicPlaceholder" class="profile-picture-placeholder" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <button id="logoutButton" class="logout-button">Logout</button>
+        </div>
     </header>
 
     <main class="main-container container-grid" role="main" id="main">
@@ -42,7 +152,7 @@
                 <div class="form-group">
                     <textarea class="form-control" id="query-input" name="query" rows="3" placeholder="Ask any question here..." style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary mt-3">Send Query</button>
+                <button type="submit" class="logout-button mt-3">Send Query</button>
             </form>
 
             <div id="response-area" class="mt-5" style="display:none;">
@@ -52,7 +162,7 @@
         </div>
     </main>
 
-    <footer class="footer footer-light pt-5 pb-3 bg-gray-100">
+    <footer class="footer footer-light pt-2 pb-2 bg-gray-100">
         <div class="container-grid">
             <div class="footer-legal">
                 <div>
@@ -131,6 +241,94 @@
         geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
     }
 });
+
+        // --- JavaScript for User Info and Logout ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Configuration for Logout ---
+            // Note: For the profile picture and user role to display,
+            // 'google_profile_picture_url' and 'user_role' must be set in localStorage
+            // during or after the login process.
+            const idTokenHint = localStorage.getItem('id_token'); // Used for OIDC logout if needed
+            // This placeholder will be replaced by the CI/CD pipeline
+            const backendUrl = '__BACKEND_URL__'; // Define backendUrl here
+            const postLogoutRedirectUri = window.location.origin + '/login.html';
+            const profilePictureUrl = localStorage.getItem('google_profile_picture_url');
+            const userRole = localStorage.getItem('user_role');
+
+            // --- DOM Elements for User Info/Logout ---
+            const logoutButton = document.getElementById('logoutButton');
+            const profilePicImg = document.getElementById('profilePic');
+            const profilePicPlaceholder = document.getElementById('profilePicPlaceholder');
+            const userRoleDisplay = document.getElementById('userRoleDisplay');
+
+            // --- Load User Role ---
+            function loadUserRole() {
+                const validRoles = ["Reader", "Contributor", "Administrator"]; // Define your valid roles
+                if (userRole && userRoleDisplay && validRoles.includes(userRole)) {
+                    userRoleDisplay.textContent = userRole;
+                    userRoleDisplay.style.display = 'inline-block';
+                } else {
+                    if (userRoleDisplay) userRoleDisplay.style.display = 'none';
+                    if (userRole) console.warn('User role found in localStorage ("' + userRole + '") but it is not a recognized role or display element is missing.');
+                    else console.info('User role not found in localStorage. Role display will be hidden.');
+                }
+            }
+
+            // --- Load Profile Picture ---
+            function loadProfilePicture() {
+                if (profilePictureUrl && profilePicImg) {
+                    profilePicImg.src = profilePictureUrl;
+                    profilePicImg.style.display = 'block';
+                    if(profilePicPlaceholder) profilePicPlaceholder.style.display = 'none';
+                } else {
+                    console.info('Google profile picture URL not found in localStorage. Displaying placeholder.');
+                    if(profilePicImg) profilePicImg.style.display = 'none';
+                    if(profilePicPlaceholder) profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                }
+            }
+
+            // --- Logout Function ---
+            function handleLogout() {
+                console.log('Logout process initiated...');
+
+                // 1. Clear local session data (tokens, user info, etc.)
+                localStorage.removeItem('id_token');
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_info'); // Example: if you store general user info
+                localStorage.removeItem('google_profile_picture_url');
+                localStorage.removeItem('user_role');
+                // Add any other items you store in localStorage for the session
+                console.log('Local session data cleared.');
+
+                // 2. Redirect to the application's backend logout endpoint.
+                // The backend will clear its session and then redirect to login.html.
+                // The 'backendUrl' variable should be defined globally (replaced by CI/CD).
+                if (typeof backendUrl !== 'undefined' && backendUrl && backendUrl !== '__BACKEND_URL__') {
+                    // Ensure backendUrl doesn't have a trailing slash before appending /logout
+                    const cleanBackendUrl = backendUrl.replace(/\/$/, '');
+                    const appLogoutUrl = `${cleanBackendUrl}/logout`;
+                    console.log('Redirecting to application logout URL:', appLogoutUrl);
+                    window.location.href = appLogoutUrl;
+                } else {
+                    console.error('Backend URL is not configured. Cannot perform application logout. Current backendUrl:', backendUrl);
+                    // Fallback: If backend URL isn't set, just redirect to login page after clearing local storage.
+                    // This won't clear the server-side session but is better than doing nothing.
+                    alert('Logout partially completed. Please close your browser to ensure full logout. Backend configuration issue detected.');
+                    window.location.href = postLogoutRedirectUri; // Redirect to login.html
+                }
+            }
+
+            // --- Event Listener for Logout Button ---
+            if (logoutButton) {
+                logoutButton.addEventListener('click', handleLogout);
+            } else {
+                console.error('Logout button (logoutButton) not found.');
+            }
+
+            // --- Initial Load of User Info ---
+            loadUserRole();
+            loadProfilePicture();
+        });
     </script>
 
 </body>
