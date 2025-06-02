@@ -236,6 +236,14 @@
         geminiResponseElement.style.padding = '10px';
         geminiResponseElement.style.whiteSpace = 'pre-wrap';
 
+        // Match font properties from the query input to the response element
+        const queryInputElement = document.getElementById('query-input');
+        const queryInputComputedStyle = window.getComputedStyle(queryInputElement);
+
+        geminiResponseElement.style.fontFamily = queryInputComputedStyle.fontFamily;
+        geminiResponseElement.style.fontSize = queryInputComputedStyle.fontSize;
+        geminiResponseElement.style.lineHeight = queryInputComputedStyle.lineHeight;
+
     } catch (error) {
         console.error('Error querying Archie:', error);
         geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
