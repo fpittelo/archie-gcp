@@ -284,17 +284,33 @@
 
             // --- Load Profile Picture ---
             function loadProfilePicture() {
-                if (profilePictureUrl && profilePicImg) {
-                    profilePicImg.src = profilePictureUrl;
-                    profilePicImg.style.display = 'block';
-                    if(profilePicPlaceholder) profilePicPlaceholder.style.display = 'none';
-                } else {
-                    console.info('Google profile picture URL not found in localStorage. Displaying placeholder.');
-                    if(profilePicImg) profilePicImg.style.display = 'none';
-                    if(profilePicPlaceholder) profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                if (profilePicImg) { // Check if the main image element exists
+                    if (profilePictureUrl) { // If image element exists and URL is available
+                        profilePicImg.src = profilePictureUrl;
+                        profilePicImg.style.display = 'block';
+                        if (profilePicPlaceholder) {
+                            profilePicPlaceholder.style.display = 'none';
+                        }
+                    } else { // If image element exists but URL is not available
+                        console.info('Google profile picture URL not found in localStorage. Displaying placeholder.');
+                        profilePicImg.style.display = 'none';
+                        if (profilePicPlaceholder) {
+                            profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                        } else {
+                            // If no placeholder, profilePicImg is already set to display:none.
+                            console.warn('Profile picture placeholder not found, and no profile URL. User avatar will not be shown.');
+                        }
+                    }
+                } else { // Main profile picture <img> element is missing
+                    console.warn('Profile picture <img> (id="profilePic") not found. Cannot display actual profile picture.');
+                    if (profilePicPlaceholder) {
+                        console.info('Attempting to display placeholder instead.');
+                        profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                    } else {
+                        console.warn('Profile picture placeholder <div> (id="profilePicPlaceholder") also not found. No user avatar will be displayed.');
+                    }
                 }
             }
-
             // --- Logout Function ---
             function handleLogout() {
                 console.log('Logout process initiated...');
