@@ -11,20 +11,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Archie Query Page</title>
 
-    <link rel="icon" type="image/png" sizes="228x228" href="favicons/favicon-228.png">
-    <link rel="icon" type="image/png" sizes="180x180" href="favicons/favicon-180.png">
-    <link rel="icon" type="image/png" sizes="152x152" href="favicons/favicon-152.png">
-    <link rel="icon" type="image/png" sizes="144x144" href="favicons/favicon-144.png">
-    <link rel="icon" type="image/png" sizes="128x128" href="favicons/favicon-128.png">
-    <link rel="icon" type="image/png" sizes="120x120" href="favicons/favicon-120.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="favicons/favicon-96.png">
-    <link rel="icon" type="image/png" sizes="76x76" href="favicons/favicon-76.png">
-    <link rel="icon" type="image/png" sizes="57x57" href="favicons/favicon-57.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
-    <link rel="manifest" href="favicons/site.webmanifest">
-    <link rel="mask-icon" href="favicons/safari-pinned-tab.svg" color="#e30713">
+    <link rel="icon" type="image/png" sizes="228x228" href="frontend/favicons/favicon-228.png">
+    <link rel="icon" type="image/png" sizes="180x180" href="frontend/favicons/favicon-180.png">
+    <link rel="icon" type="image/png" sizes="152x152" href="frontend/favicons/favicon-152.png">
+    <link rel="icon" type="image/png" sizes="144x144" href="frontend/favicons/favicon-144.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="frontend/favicons/favicon-128.png">
+    <link rel="icon" type="image/png" sizes="120x120" href="frontend/favicons/favicon-120.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="frontend/favicons/favicon-96.png">
+    <link rel="icon" type="image/png" sizes="76x76" href="frontend/favicons/favicon-76.png">
+    <link rel="icon" type="image/png" sizes="57x57" href="frontend/favicons/favicon-57.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="frontend/favicons/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="frontend/favicons/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="frontend/favicons/apple-touch-icon.png">
+    <link rel="manifest" href="frontend/favicons/site.webmanifest">
+    <link rel="mask-icon" href="frontend/favicons/safari-pinned-tab.svg" color="#e30713">
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="theme-color" content="#e30713">
 
@@ -236,6 +236,14 @@
         geminiResponseElement.style.padding = '10px';
         geminiResponseElement.style.whiteSpace = 'pre-wrap';
 
+        // Match font properties from the query input to the response element
+        const queryInputElement = document.getElementById('query-input');
+        const queryInputComputedStyle = window.getComputedStyle(queryInputElement);
+
+        geminiResponseElement.style.fontFamily = queryInputComputedStyle.fontFamily;
+        geminiResponseElement.style.fontSize = queryInputComputedStyle.fontSize;
+        geminiResponseElement.style.lineHeight = queryInputComputedStyle.lineHeight;
+
     } catch (error) {
         console.error('Error querying Archie:', error);
         geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
@@ -249,9 +257,36 @@
             // 'google_profile_picture_url' and 'user_role' must be set in localStorage
             // during or after the login process.
             const idTokenHint = localStorage.getItem('id_token'); // Used for OIDC logout if needed
-            // This placeholder will be replaced by the CI/CD pipeline
+            
+            // This placeholder __BACKEND_URL__ should be replaced by the CI/CD pipeline.
+            // It's crucial for the primary logout flow (contacting the backend).
             const backendUrl = '__BACKEND_URL__'; // Define backendUrl here
-            const postLogoutRedirectUri = window.location.origin + '/login.html';
+            
+            // Fallback redirect URI if backend logout fails or backendUrl is not configured.
+            // Constructs an absolute path to login.html based on the current URL's first significant path segment (e.g., bucket name).
+            let postLogoutRedirectUri;
+
+            // --- Enhanced Debug Logging ---
+            console.log('[Logout Fallback DEBUG] Current window.location.href:', window.location.href);
+            console.log('[Logout Fallback DEBUG] Current window.location.pathname:', window.location.pathname);
+            
+            // Get path segments, removing empty strings that result from leading/trailing/multiple slashes
+            const pathParts = window.location.pathname.split('/').filter(part => part.length > 0);
+            console.log('[Logout Fallback DEBUG] pathParts (after filter):', JSON.stringify(pathParts));
+
+            if (pathParts.length > 0) {
+                const firstSignificantPathSegment = pathParts[0]; // This should be the bucket name (e.g., "archiemcp-dev")
+                postLogoutRedirectUri = `/${firstSignificantPathSegment}/login.html`;
+                console.log(`[Logout Fallback] SUCCESS: Determined postLogoutRedirectUri as absolute path: '${postLogoutRedirectUri}' using segment: '${firstSignificantPathSegment}'`);
+            } else {
+                // This block means the bucket name could not be reliably extracted from the pathname.
+                // This is highly problematic if the host is storage.googleapis.com, as a bucket name is expected in the path.
+                postLogoutRedirectUri = 'login.html'; // Fallback to relative path
+                console.warn(`[Logout Fallback] FAILURE: Could not determine bucket base path from pathname: '${window.location.pathname}'. Defaulting to relative path: '${postLogoutRedirectUri}'. This may lead to incorrect redirection if current URL has no trailing slash.`);
+                // The alert below will also indicate a problem.
+            }
+            // --- End Enhanced Debug Logging ---
+
             const profilePictureUrl = localStorage.getItem('google_profile_picture_url');
             const userRole = localStorage.getItem('user_role');
 
@@ -276,17 +311,50 @@
 
             // --- Load Profile Picture ---
             function loadProfilePicture() {
-                if (profilePictureUrl && profilePicImg) {
-                    profilePicImg.src = profilePictureUrl;
-                    profilePicImg.style.display = 'block';
-                    if(profilePicPlaceholder) profilePicPlaceholder.style.display = 'none';
-                } else {
-                    console.info('Google profile picture URL not found in localStorage. Displaying placeholder.');
-                    if(profilePicImg) profilePicImg.style.display = 'none';
-                    if(profilePicPlaceholder) profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                console.log('Attempting to load profile picture. URL from localStorage:', profilePictureUrl);
+
+                if (profilePicImg) { // Check if the main image element exists
+                    if (profilePictureUrl) { // If image element exists and URL is available
+                        profilePicImg.src = profilePictureUrl;
+                        profilePicImg.style.display = 'block';
+
+                        // Add an error handler for the image
+                        profilePicImg.onerror = () => {
+                            console.error(`Failed to load profile picture from URL: ${profilePictureUrl}. Displaying placeholder.`);
+                            profilePicImg.style.display = 'none';
+                            if (profilePicPlaceholder) {
+                                profilePicPlaceholder.style.display = 'flex';
+                            }
+                            // Optional: Clear the bad URL from localStorage to prevent repeated failed attempts on next loads
+                            // localStorage.removeItem('google_profile_picture_url');
+                        };
+                        profilePicImg.onload = () => {
+                            console.log('Profile picture loaded successfully.');
+                        };
+
+                        if (profilePicPlaceholder) {
+                            profilePicPlaceholder.style.display = 'none';
+                        }
+                    } else { // If image element exists but URL is not available
+                        console.info('Google profile picture URL not found or is empty in localStorage. Displaying placeholder.');
+                        profilePicImg.style.display = 'none';
+                        if (profilePicPlaceholder) {
+                            profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                        } else {
+                            // If no placeholder, profilePicImg is already set to display:none.
+                            console.warn('Profile picture placeholder not found, and no profile URL. User avatar will not be shown.');
+                        }
+                    }
+                } else { // Main profile picture <img> element is missing
+                    console.warn('Profile picture <img> (id="profilePic") not found. Cannot display actual profile picture.');
+                    if (profilePicPlaceholder) {
+                        console.info('Attempting to display placeholder instead.');
+                        profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                    } else {
+                        console.warn('Profile picture placeholder <div> (id="profilePicPlaceholder") also not found. No user avatar will be displayed.');
+                    }
                 }
             }
-
             // --- Logout Function ---
             function handleLogout() {
                 console.log('Logout process initiated...');
@@ -313,7 +381,8 @@
                     console.error('Backend URL is not configured. Cannot perform application logout. Current backendUrl:', backendUrl);
                     // Fallback: If backend URL isn't set, just redirect to login page after clearing local storage.
                     // This won't clear the server-side session but is better than doing nothing.
-                    alert('Logout partially completed. Please close your browser to ensure full logout. Backend configuration issue detected.');
+                    alert('Logout partially completed. Please close your browser to ensure full logout. Backend configuration issue detected (or unable to determine redirect path).');
+                    console.log('[Logout Fallback] Redirecting to:', postLogoutRedirectUri);
                     window.location.href = postLogoutRedirectUri; // Redirect to login.html
                 }
             }
