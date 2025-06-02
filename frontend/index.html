@@ -284,15 +284,32 @@
 
             // --- Load Profile Picture ---
             function loadProfilePicture() {
+                console.log('Attempting to load profile picture. URL from localStorage:', profilePictureUrl);
+
                 if (profilePicImg) { // Check if the main image element exists
                     if (profilePictureUrl) { // If image element exists and URL is available
                         profilePicImg.src = profilePictureUrl;
                         profilePicImg.style.display = 'block';
+
+                        // Add an error handler for the image
+                        profilePicImg.onerror = () => {
+                            console.error(`Failed to load profile picture from URL: ${profilePictureUrl}. Displaying placeholder.`);
+                            profilePicImg.style.display = 'none';
+                            if (profilePicPlaceholder) {
+                                profilePicPlaceholder.style.display = 'flex';
+                            }
+                            // Optional: Clear the bad URL from localStorage to prevent repeated failed attempts on next loads
+                            // localStorage.removeItem('google_profile_picture_url');
+                        };
+                        profilePicImg.onload = () => {
+                            console.log('Profile picture loaded successfully.');
+                        };
+
                         if (profilePicPlaceholder) {
                             profilePicPlaceholder.style.display = 'none';
                         }
                     } else { // If image element exists but URL is not available
-                        console.info('Google profile picture URL not found in localStorage. Displaying placeholder.');
+                        console.info('Google profile picture URL not found or is empty in localStorage. Displaying placeholder.');
                         profilePicImg.style.display = 'none';
                         if (profilePicPlaceholder) {
                             profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
