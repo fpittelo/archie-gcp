@@ -261,9 +261,25 @@
             // This placeholder __BACKEND_URL__ should be replaced by the CI/CD pipeline.
             // It's crucial for the primary logout flow (contacting the backend).
             const backendUrl = '__BACKEND_URL__'; // Define backendUrl here
+            
             // Fallback redirect URI if backend logout fails or backendUrl is not configured.
-            // Assumes login.html is in the same directory as index.html when served.
-            const postLogoutRedirectUri = 'login.html'; 
+            // Constructs an absolute path to login.html based on the current URL's first significant path segment (e.g., bucket name).
+            // This handles cases where index.html might be served from URLs like /bucket-name or /bucket-name/
+            const pathSegments = window.location.pathname.split('/');
+            // Default to a simple relative path if bucket path cannot be determined,
+            // though this is less likely to work correctly given the observed issue.
+            let postLogoutRedirectUri = 'login.html'; 
+            
+            if (pathSegments.length > 1 && pathSegments[1] && pathSegments[1].trim() !== '') {
+                // pathSegments[0] is an empty string from the leading '/'
+                // pathSegments[1] should be the bucket name or the first directory in the path.
+                const bucketBasePath = '/' + pathSegments[1]; 
+                postLogoutRedirectUri = bucketBasePath + '/login.html'; // e.g., /archiemcp-dev/login.html
+                console.log('[Logout Fallback] Determined postLogoutRedirectUri:', postLogoutRedirectUri);
+            } else {
+                // This case might occur if pathname is just "/" or empty, which is unlikely for GCS bucket access via storage.googleapis.com/bucket-name.
+                console.warn('[Logout Fallback] Could not determine bucket base path from pathname:', window.location.pathname, '. Using relative path:', postLogoutRedirectUri);
+            }
             const profilePictureUrl = localStorage.getItem('google_profile_picture_url');
             const userRole = localStorage.getItem('user_role');
 
@@ -359,6 +375,7 @@
                     // Fallback: If backend URL isn't set, just redirect to login page after clearing local storage.
                     // This won't clear the server-side session but is better than doing nothing.
                     alert('Logout partially completed. Please close your browser to ensure full logout. Backend configuration issue detected.');
+                    console.log('[Logout Fallback] Redirecting to:', postLogoutRedirectUri);
                     window.location.href = postLogoutRedirectUri; // Redirect to login.html
                 }
             }
