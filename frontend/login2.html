@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Cache Control Meta Tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- End Cache Control Meta Tags -->
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - EPFL Archie (Debug)</title>
+    <link rel="stylesheet" href="css/vendors.min.css">
+    <link rel="stylesheet" href="css/elements.min.css">
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/login-styles.css">
+    <style>
+        *, *::before, *::after { /* Apply box-sizing universally */
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%; /* Ensure html and body take full viewport height */
+            margin: 0;
+            padding: 0;
+        }
+        .login-container {
+            min-height: 100vh; /* Use min-height for robustness */
+            height: 100%; /* Make login container take full height of body */
+            display: flex;
+        }
+        .left-column {
+            flex: 1; /* Distribute space equally or based on content */
+            /* Background image for left-column is typically set in login-styles.css */
+        }
+        .right-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column; /* Stack login form and footer vertically */
+            padding: 0; /* Crucial: Ensure no padding on the column itself that might shrink the footer */
+            min-height: 0; /* Fix for potential flex item overflow/shrinking issues */
+        }
+        .login-form-container {
+            flex-grow: 1; /* Allows the login form area to expand, pushing the footer down */
+            display: flex; /* Helps in centering its own content if login-styles.css relies on it */
+            flex-direction: column; /* If its content needs to stack */
+            justify-content: center; /* Aligns .login-main-content vertically */
+            align-items: center; /* Aligns .login-main-content horizontally */
+            min-height: 0; /* Fix for potential flex item overflow/shrinking issues */
+            /* Any padding for the form area itself should be on .login-main-content or similar inner div */
+        }
+        .right-column > .footer {
+            width: 100%; /* Footer takes full width of the right column */
+            flex-shrink: 0; /* Prevent footer from shrinking */
+            margin: 0; /* Remove any default margins that might cause side gaps */
+        }
+
+        /* Footer text font size reduction */
+        .footer-legal p, .footer-legal-links a {
+            font-size: 0.8rem; /* Adjust as needed */
+        }
+
+        /* Remove line from footer (border, shadow, or pseudo-elements) */
+        .footer-light,
+        .footer-light .container-grid { /* Target .container-grid specifically within .footer-light */
+            border: none !important;
+            box-shadow: none !important; /* Removes any box-shadow that might appear as a line */
+        }
+
+        /* Attempt to hide pseudo-elements that might be creating a line */
+        .footer-light::before, .footer-light::after,
+        .footer-light .container-grid::before, .footer-light .container-grid::after {
+            display: none !important;
+            content: "" !important; /* Ensure no content is rendered by them */
+            border: none !important; /* Just in case they use borders */
+        }
+
+        /* Styles for the login button to match logout/send query buttons */
+        .logout-button { /* Using the same class name for consistency */
+            background-color: #4285F4; /* Google Blue, or your preferred color */
+            color: white !important; /* Ensure text color overrides any <a> tag defaults */
+            font-weight: 500;
+            font-size: 0.875rem; /* 14px */
+            padding: 12px 24px; /* Adjusted padding for a more prominent button */
+            border-radius: 8px; /* rounded-lg */
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            text-decoration: none !important; /* Remove underline from <a> tag */
+            display: inline-block; /* Behaves like a button */
+        }
+        .logout-button:hover {
+            background-color: #357ae8; /* Darker Google Blue on hover */
+        }
+
+        /* Styles for login page content alignment */
+        .login-main-content {
+            display: flex;
+            flex-direction: column; /* Stack the logo group and the button vertically */
+            align-items: center;   /* Center these stacked items horizontally */
+            gap: 25px; /* Space between the logo group and the button, adjust as needed */
+        }
+
+        .login-main-content .logo { /* Targets the div with class="logo" */
+            display: flex;         /* Arrange img and span side-by-side */
+            align-items: center;   /* Vertically align img and span */
+            gap: 10px;             /* Space between EPFL image and "Archie" text, adjust as needed */
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Left Column (Visual Element) -->
+        <div class="left-column">
+            <!-- Background image is set via CSS: url('../flavicons/epfl-campus-aerial.jpg') -->
+        </div>
+
+        <!-- Right Column (Login Elements) -->
+        <div class="right-column">
+            <div class="login-form-container">
+                <div class="login-main-content"> <!-- Wrapper for logo and button -->
+                    <div class="logo">
+                        <img src="flavicons/logo-epfl.png" alt="EPFL Logo" class="logo-epfl-img"> <span class="logo-archie">Archie</span>
+                    </div>
+                    <!-- Login Button -->
+                    <a href="#" id="google-login-button" class="logout-button">Login with Google</a>
+                </div>
+            </div>
+            <!-- Footer moved inside the right-column -->
+            <footer class="footer footer-light pt-2 pb-2 bg-gray-100">
+                <div class="container-grid">
+                    <div class="footer-legal">
+                        <div>
+                            <p>&copy; EPFL 2024. All rights reserved.</p>
+                        </div>
+                        <div class="footer-legal-links">
+                            <a href="https://www.epfl.ch/about/overview/fr/reglements-et-directives/" target="_blank" rel="noopener">Accessibility</a>
+                            <a href="https://go.epfl.ch/privacy-policy" target="_blank" rel="noopener">Privacy policy</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // This placeholder will be replaced by the CI/CD pipeline in deploy.yaml
+        // For local debugging, you can manually set it here in login2.html
+        const backendUrl = 'https://archie-mcp-dev-851493899554.europe-west1.run.app'; // <-- YOUR ACTUAL BACKEND URL
+        console.log('[Login2 Script] Initial backendUrl value:', backendUrl);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[Login2 Script] DOMContentLoaded event fired.');
+            const loginButton = document.getElementById('google-login-button');
+
+            if (!loginButton) {
+                console.error('[Login2 Script] Login button not found!');
+                return;
+            }
+            console.log('[Login2 Script] Login button found:', loginButton);
+            console.log(`[Login2 Script] Checking condition: loginButton && backendUrl ('${backendUrl}') && backendUrl !== '' && backendUrl !== '__BACKEND_URL__'`);
+
+            if (loginButton && backendUrl && backendUrl !== '' && backendUrl !== '__BACKEND_URL__') {
+                console.log('[Login2 Script] Condition TRUE. Setting href.');
+                loginButton.href = `${backendUrl}/login/google`; // Your backend endpoint to initiate Google OAuth
+                console.log('[Login2 Script] Login button href set to:', loginButton.href);
+            } else if (loginButton) {
+                console.warn('[Login2 Script] Condition FALSE. Backend URL not configured or is placeholder.');
+                loginButton.textContent = 'Login (Backend URL not configured)';
+                loginButton.href = '#'; // Prevent navigation if URL is not set
+                loginButton.style.backgroundColor = 'grey'; // Indicate it's disabled
+                console.error('Backend URL is not configured for the login button. Placeholder was: __BACKEND_URL__ or it was empty.');
+            }
+        });
+    </script>
+</body>
+</html>
