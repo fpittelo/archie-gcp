@@ -147,7 +147,7 @@
 
     <script>
         // This placeholder will be replaced by the CI/CD pipeline in deploy.yaml
-        const backendUrl = 'https://archie-mcp-dev-851493899554.europe-west1.run.app'; // Manually set for login2.html debugging
+        const backendUrl = 'https://archie-mcp-dev-851493899554.europe-west1.run.app';
         console.log('[Login2 Script] Manually set backendUrl value:', backendUrl);
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -163,13 +163,13 @@
 
             if (loginButton && backendUrl && backendUrl !== '' && backendUrl !== '__BACKEND_URL__') {
                 console.log('[Login Script] Condition TRUE. Setting href.');
-                loginButton.href = `${backendUrl}/login/google`; // Your backend endpoint to initiate Google OAuth
+                loginButton.href = `${backendUrl}/login/google`;
                 console.log('[Login Script] Login button href set to:', loginButton.href);
             } else if (loginButton) {
                 console.warn('[Login Script] Condition FALSE. Backend URL not configured or is placeholder.');
                 loginButton.textContent = 'Login (Backend URL not configured)';
-                loginButton.href = '#'; // Prevent navigation if URL is not set
-                loginButton.style.backgroundColor = 'grey'; // Indicate it's disabled
+                loginButton.href = '#';
+                loginButton.style.backgroundColor = 'grey';
                 console.error('Backend URL is not configured for the login button. Placeholder was: __BACKEND_URL__');
             }
         });
