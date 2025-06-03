@@ -10,7 +10,7 @@
 
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - EPFL Archie (Debug)</title>
+    <title>Login - EPFL Archie</title>
     <link rel="stylesheet" href="css/vendors.min.css">
     <link rel="stylesheet" href="css/elements.min.css">
     <link rel="stylesheet" href="css/app.css">
@@ -77,11 +77,11 @@
 
         /* Styles for the login button to match logout/send query buttons */
         .logout-button { /* Using the same class name for consistency */
-            background-color: #4285F4; /* Google Blue, or your preferred color */
+            background-color: #ef4444; /* red-500 */
             color: white !important; /* Ensure text color overrides any <a> tag defaults */
             font-weight: 500;
             font-size: 0.875rem; /* 14px */
-            padding: 12px 24px; /* Adjusted padding for a more prominent button */
+            padding: 8px 16px;
             border-radius: 8px; /* rounded-lg */
             border: none;
             cursor: pointer;
@@ -92,7 +92,7 @@
             display: inline-block; /* Behaves like a button */
         }
         .logout-button:hover {
-            background-color: #357ae8; /* Darker Google Blue on hover */
+            background-color: #dc2626; /* red-600 */
         }
 
         /* Styles for login page content alignment */
@@ -147,31 +147,30 @@
 
     <script>
         // This placeholder will be replaced by the CI/CD pipeline in deploy.yaml
-        // For local debugging, you can manually set it here in login2.html
-        const backendUrl = 'https://archie-mcp-dev-851493899554.europe-west1.run.app'; // <-- YOUR ACTUAL BACKEND URL
-        console.log('[Login2 Script] Initial backendUrl value:', backendUrl);
+        const backendUrl = '__BACKEND_URL__';
+        console.log('[Login Script] Initial backendUrl placeholder value:', backendUrl);
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('[Login2 Script] DOMContentLoaded event fired.');
+            console.log('[Login Script] DOMContentLoaded event fired.');
             const loginButton = document.getElementById('google-login-button');
 
             if (!loginButton) {
-                console.error('[Login2 Script] Login button not found!');
+                console.error('[Login Script] Login button not found!');
                 return;
             }
-            console.log('[Login2 Script] Login button found:', loginButton);
-            console.log(`[Login2 Script] Checking condition: loginButton && backendUrl ('${backendUrl}') && backendUrl !== '' && backendUrl !== '__BACKEND_URL__'`);
+            console.log('[Login Script] Login button found:', loginButton);
+            console.log(`[Login Script] Checking condition: loginButton && backendUrl ('${backendUrl}') && backendUrl !== '' && backendUrl !== '__BACKEND_URL__'`);
 
             if (loginButton && backendUrl && backendUrl !== '' && backendUrl !== '__BACKEND_URL__') {
-                console.log('[Login2 Script] Condition TRUE. Setting href.');
+                console.log('[Login Script] Condition TRUE. Setting href.');
                 loginButton.href = `${backendUrl}/login/google`; // Your backend endpoint to initiate Google OAuth
-                console.log('[Login2 Script] Login button href set to:', loginButton.href);
+                console.log('[Login Script] Login button href set to:', loginButton.href);
             } else if (loginButton) {
-                console.warn('[Login2 Script] Condition FALSE. Backend URL not configured or is placeholder.');
+                console.warn('[Login Script] Condition FALSE. Backend URL not configured or is placeholder.');
                 loginButton.textContent = 'Login (Backend URL not configured)';
                 loginButton.href = '#'; // Prevent navigation if URL is not set
                 loginButton.style.backgroundColor = 'grey'; // Indicate it's disabled
-                console.error('Backend URL is not configured for the login button. Placeholder was: __BACKEND_URL__ or it was empty.');
+                console.error('Backend URL is not configured for the login button. Placeholder was: __BACKEND_URL__');
             }
         });
     </script>
