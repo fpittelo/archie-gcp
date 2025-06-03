@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archie MCP - Main Application</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f4f4f4; color: #333; }
+        .container { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; max-width: 600px; width: 90%;}
+        .loading { font-size: 1.2em; color: #555; }
+        .content { display: none; /* Hidden by default */ }
+        .user-info img { border-radius: 50%; width: 50px; height: 50px; margin-bottom: 10px; border: 2px solid #ddd; }
+        .user-info p { margin: 5px 0; }
+        .logout-btn { padding: 10px 15px; background-color: #d9534f; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 20px; font-size: 1em; }
+        .logout-btn:hover { background-color: #c9302c; }
+        h1 { color: #337ab7; }
+        textarea { width: 90%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: sans-serif;}
+        button[type="submit"] { padding: 10px 20px; background-color: #5cb85c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em;}
+        button[type="submit"]:hover { background-color: #4cae4c; }
+        #gemini-response { margin-top: 15px; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px solid #eee; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading-message" class="loading">Loading... Checking authentication status...</div>
+        
+        <div id="app-content" class="content">
+            <h1>Welcome to Archie MCP</h1>
+            <div id="user-info" class="user-info">
+                <img id="user-picture" src="" alt="User Picture">
+                <p>Hello, <strong id="user-name"></strong>!</p>
+                <p>Email: <span id="user-email"></span></p>
+            </div>
+            
+            <p>Use the form below to ask questions to the Gemini model.</p>
+            <form id="query-form">
+                <textarea id="question-input" name="question" placeholder="Ask Gemini..." rows="4"></textarea><br>
+                <button type="submit">Send to Gemini</button>
+            </form>
+            <div id="gemini-response"></div>
+
+            <a href="#" id="logout-link" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <script>
+        // IMPORTANT: Configure this to your backend's base URL.
+        // This is the URL where your Flask application (main.py) is served.
+        // Example for Cloud Run: "https://your-service-name-xyz.a.run.app"
+        // Example for local dev: "http://localhost:8080" (if main.py runs on port 8080)
+        // If this index.html is served from the same origin as the backend (e.g. Flask serves static files),
+        // you can use "" (empty string) or "/". For CI/CD, a placeholder is best.
+        const API_BASE_URL = '__BACKEND_URL__'; // <-- This will be replaced by your CI/CD pipeline
+
+        // Fallback login page URL (relative to this index.html file's location)
+        // This is used if the backend doesn't provide a specific redirectTo URL.
+        const FALLBACK_LOGIN_PAGE = 'login.html'; 
+
+        async function checkAuthStatus() {
+            const loadingMessage = document.getElementById('loading-message');
+            const appContent = document.getElementById('app-content');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/status`, {
+                    method: 'GET',
+                    credentials: 'include', // Crucial for sending session cookies
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.authenticated && data.user) {
+                        loadingMessage.style.display = 'none';
+                        appContent.style.display = 'block';
+                        document.getElementById('user-name').textContent = data.user.name || 'User';
+                        document.getElementById('user-email').textContent = data.user.email || 'N/A';
+                        const userPictureElem = document.getElementById('user-picture');
+                        if (data.user.picture) {
+                            userPictureElem.src = data.user.picture;
+                            userPictureElem.style.display = '';
+                        } else {
+                            userPictureElem.style.display = 'none';
+                        }
+                        document.getElementById('logout-link').href = `${API_BASE_URL}/logout`;
+                        initializeQueryForm();
+                    } else {
+                        // Should ideally not happen if backend returns 200 OK with authenticated: false
+                        redirectToLogin(data.redirectTo);
+                    }
+                } else if (response.status === 401) {
+                    const data = await response.json();
+                    redirectToLogin(data.redirectTo);
+                } else {
+                    console.error('Error checking auth status:', response.status, await response.text());
+                    loadingMessage.textContent = `Error ${response.status}: Could not verify authentication.`;
+                }
+            } catch (error) {
+                console.error('Network or other error fetching auth status:', error);
+                loadingMessage.textContent = 'Service unavailable. Please check your network or try again later.';
+                // You might want to offer a manual link to the login page here too.
+            }
+        }
+
+        function redirectToLogin(backendRedirectUrl) {
+            let loginUrl = backendRedirectUrl;
+            if (!loginUrl) {
+                // Fallback if the backend didn't provide a URL.
+                // Assumes login.html is relative to the current page's location.
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                loginUrl = basePath + FALLBACK_LOGIN_PAGE;
+                console.warn(`Backend did not provide a redirect URL for login. Falling back to: ${loginUrl}`);
+            }
+            window.location.href = loginUrl;
+        }
+
+        function initializeQueryForm() {
+            const form = document.getElementById('query-form');
+            const input = document.getElementById('question-input');
+            const responseDiv = document.getElementById('gemini-response');
+
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const question = input.value.trim();
+                if (!question) {
+                    responseDiv.textContent = 'Please enter a question.';
+                    return;
+                }
+                responseDiv.textContent = 'Sending to Gemini...';
+                try {
+                    const res = await fetch(`${API_BASE_URL}/`, { // Main query endpoint
+                        method: 'POST',
+                        credentials: 'include', // Send session cookies
+                        body: new FormData(form) // Backend expects 'question' in form data
+                    });
+                    const data = await res.json(); // Expect JSON response
+                    if (res.ok) {
+                        responseDiv.textContent = data.answer || `Error: ${data.error}` || 'Unexpected response format.';
+                    } else if (res.status === 401 && data.redirectTo) {
+                        redirectToLogin(data.redirectTo); // Re-authenticate
+                    } else {
+                        responseDiv.textContent = `Error ${res.status}: ${data.error || await res.text()}`;
+                    }
+                } catch (error) {
+                    console.error('Error sending question to Gemini:', error);
+                    responseDiv.textContent = 'Failed to send question. Network error or server issue.';
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', checkAuthStatus);
+    </script>
+</body>
+</html>
