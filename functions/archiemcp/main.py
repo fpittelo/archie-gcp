@@ -350,5 +350,54 @@ def logout():
         # Fallback: redirect to the backend's own login initiation route
         return redirect(url_for('login_google'))
 
+@app.route('/api/v1/auth/status', methods=['GET', 'OPTIONS'])
+def auth_status():
+    """
+    Checks the current authentication status of the user based on the Flask session.
+    Handles CORS and returns user information if authenticated, or a redirect URL if not.
+    """
+    response_headers = {
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization', # Allow Authorization for potential future use
+        'Content-Type': 'application/json'
+    }
+
+    # Handle CORS preflight and origin
+    if FRONTEND_CORS_ORIGIN:
+        response_headers['Access-Control-Allow-Origin'] = FRONTEND_CORS_ORIGIN
+        response_headers['Access-Control-Allow-Credentials'] = 'true' # Crucial for session cookies
+    else:
+        # Fallback for local development or when FRONTEND_CORS_ORIGIN is not set
+        response_headers['Access-Control-Allow-Origin'] = '*'
+        # Note: 'Access-Control-Allow-Credentials' cannot be 'true' with wildcard origin.
+        # This might affect cross-origin session cookie behavior if FRONTEND_CORS_ORIGIN is not properly set in deployed environments.
+        logging.warning("FRONTEND_CORS_ORIGIN not set. Using wildcard '*' for Access-Control-Allow-Origin. "
+                        "Cross-origin credentialed requests might be blocked by browsers if not configured correctly.")
+
+    if request.method == 'OPTIONS':
+        return ('', 204, response_headers)
+
+    if 'email' in session:
+        user_info = {
+            "email": session.get('email'),
+            "name": session.get('name'),
+            "picture": session.get('picture')
+            # Add any other user-specific info the frontend might need immediately
+        }
+        return (json.dumps({"authenticated": True, "user": user_info}), 200, response_headers)
+    else:
+        frontend_login_url = None
+        if FRONTEND_REDIRECT_BASE_URL and LOGIN_HTML_PATH:
+            frontend_login_url = f"{FRONTEND_REDIRECT_BASE_URL.rstrip('/')}{LOGIN_HTML_PATH}"
+        else:
+            logging.warning("FRONTEND_REDIRECT_BASE_URL or LOGIN_HTML_PATH not set. Cannot construct full frontend login URL.")
+            # As a last resort, you might point to the backend's login initiation, but frontend redirect is preferred.
+            # frontend_login_url = url_for('auth_google_initiate', _external=True)
+
+        return (json.dumps({
+            "authenticated": False,
+            "redirectTo": frontend_login_url
+        }), 401, response_headers)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
