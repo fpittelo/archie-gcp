@@ -156,13 +156,14 @@
         /* Ensure the main content area grows to push the footer down */
         #app-root {
             flex-grow: 1;
+            height: 100%; /* Added for robustness with sticky footer */
         }
     </style>
 </head>
 <body>
     <div id="initial-loader">Loading...</div>
 
-    <header class="header header-light" style="display: none;">
+    <header class="header header-light"> <!-- Removed initial style="display: none;" -->
         <a class="logo" href="https://www.epfl.ch/en/">
         <img src="https://www.epfl.ch/wp-content/themes/wp-theme-2018/assets/svg/epfl-logo.svg" alt="Logo EPFL, École polytechnique fédérale de Lausanne" class="img-fluid">
     </a>
@@ -226,7 +227,7 @@
         function initializeAppUI(userData) {
             document.getElementById('app-root').style.display = 'block';
             const header = document.querySelector('.header.header-light');
-            if (header) header.style.display = 'flex';
+            // if (header) header.style.display = 'flex'; // This line is now potentially redundant if .header-light CSS sets display: flex, but harmless.
             const footer = document.querySelector('.footer.footer-light');
             if (footer) footer.style.display = 'block';
 
