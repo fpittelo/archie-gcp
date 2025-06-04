@@ -28,6 +28,13 @@
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="theme-color" content="#e30713">
 
+    <script>
+        // CI/CD Will Replace These Placeholders
+        const FRONTEND_REDIRECT_BASE_URL = "__FRONTEND_REDIRECT_BASE_URL__";
+        const LOGIN_HTML_PATH = "__LOGIN_HTML_PATH__";
+        const BACKEND_URL = "__BACKEND_URL__"; // This one might already be managed by existing scripts
+    </script>
+
     <link rel="stylesheet" href="css/vendors.min.css">
     <link rel="stylesheet" href="css/elements.min.css">
     <link rel="stylesheet" href="css/app.css">
@@ -130,6 +137,8 @@
     </style>
 </head>
 <body>
+    <p id="loading-indicator">Loading application...</p>
+    <div id="app-root"></div>
 
     <header class="header header-light">
         <a class="logo" href="https://www.epfl.ch/en/">
@@ -144,23 +153,6 @@
             <button id="logoutButton" class="logout-button">Logout</button>
         </div>
     </header>
-
-    <main class="main-container container-grid" role="main" id="main">
-        <div class="container pt-5 pb-5"> <h1>Ask Archie</h1>
-            <p class="lead">Enter your query below to get a response from Archie</p>
-            <form id="query-form" class="mt-4">
-                <div class="form-group">
-                    <textarea class="form-control" id="query-input" name="query" rows="3" placeholder="Ask any question here..." style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></textarea>
-                </div>
-                <button type="submit" class="logout-button mt-3">Send Query</button>
-            </form>
-
-            <div id="response-area" class="mt-5" style="display:none;">
-                <h2>Response</h2>
-                <pre><code id="gemini-response"></code></pre>
-            </div>
-        </div>
-    </main>
 
     <footer class="footer footer-light pt-2 pb-2 bg-gray-100">
         <div class="container-grid">
@@ -180,225 +172,204 @@
     <script src="js/vendors.min.js"></script>
     <script src="js/elements.min.js"></script>
     <script>
-        document.getElementById('query-form').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const query = document.getElementById('query-input').value;
-            const responseArea = document.getElementById('response-area');
-            const geminiResponseElement = document.getElementById('gemini-response');
-
-            // This placeholder will be replaced by the CI/CD pipeline
-            const backendUrl = '__BACKEND_URL__';
-
-            // Show response area
-            responseArea.style.display = 'block';
-            geminiResponseElement.textContent = 'Thinking...';
-
-            if (!query.trim()) {
-               geminiResponseElement.textContent = 'Please enter a question.';
-               return;
-            }
-
-            // Create a FormData object
-           const formData = new FormData();
-           formData.append('question', query); // 'question' should match the field name your backend expects
-
-           try {
-                const response = await fetch(backendUrl, {
-                    method: 'POST',
-                    // REMOVE the 'Content-Type' header; the browser will set it correctly for FormData
-                    // headers: {
-                    //     'Content-Type': 'application/json', // NO LONGER NEEDED
-                    // },
-                    body: formData, // Send the FormData object as the body
-                    credentials: 'include' // Send cookies with the request
-        });
-
-            if (!response.ok) {
-                console.log('Response not OK. Status:', response.status);
-                console.log('Is body already used before .text() call?', response.bodyUsed);
-
-                let errorDetail = "";
-                const responseBodyText = await response.text();
-            try {
-                const errorData = JSON.parse(responseBodyText);
-                errorDetail = errorData.error || JSON.stringify(errorData);
-            } catch (parseError) {
-                errorDetail = responseBodyText;
-            }
-            throw new Error(`HTTP error! status: ${response.status} - ${errorDetail}`);
-        }
-
-        const data = await response.json();
-        let answer = data.answer ? data.answer.replace(/\*/g, '') : 'No answer received from Archie.';
-        geminiResponseElement.textContent = answer;
-        geminiResponseElement.style.borderRadius = '10px';
-        geminiResponseElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-        geminiResponseElement.style.padding = '10px';
-        geminiResponseElement.style.whiteSpace = 'pre-wrap';
-
-        // Match font properties from the query input to the response element
-        const queryInputElement = document.getElementById('query-input');
-        const queryInputComputedStyle = window.getComputedStyle(queryInputElement);
-
-        geminiResponseElement.style.fontFamily = queryInputComputedStyle.fontFamily;
-        geminiResponseElement.style.fontSize = queryInputComputedStyle.fontSize;
-        geminiResponseElement.style.lineHeight = queryInputComputedStyle.lineHeight;
-
-    } catch (error) {
-        console.error('Error querying Archie:', error);
-        geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
-    }
-});
-
-        // --- JavaScript for User Info and Logout ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- Configuration for Logout ---
-            // Note: For the profile picture and user role to display,
-            // 'google_profile_picture_url' and 'user_role' must be set in localStorage
-            // during or after the login process.
-            const idTokenHint = localStorage.getItem('id_token'); // Used for OIDC logout if needed
-            
-            // This placeholder __BACKEND_URL__ should be replaced by the CI/CD pipeline.
-            // It's crucial for the primary logout flow (contacting the backend).
-            const backendUrl = '__BACKEND_URL__'; // Define backendUrl here
-            
-            // Fallback redirect URI if backend logout fails or backendUrl is not configured.
-            // Constructs an absolute path to login.html based on the current URL's first significant path segment (e.g., bucket name).
-            let postLogoutRedirectUri;
-
-            // --- Enhanced Debug Logging ---
-            console.log('[Logout Fallback DEBUG] Current window.location.href:', window.location.href);
-            console.log('[Logout Fallback DEBUG] Current window.location.pathname:', window.location.pathname);
-            
-            // Get path segments, removing empty strings that result from leading/trailing/multiple slashes
-            const pathParts = window.location.pathname.split('/').filter(part => part.length > 0);
-            console.log('[Logout Fallback DEBUG] pathParts (after filter):', JSON.stringify(pathParts));
-
-            if (pathParts.length > 0) {
-                const firstSignificantPathSegment = pathParts[0]; // This should be the bucket name (e.g., "archiemcp-dev")
-                postLogoutRedirectUri = `/${firstSignificantPathSegment}/login.html`;
-                console.log(`[Logout Fallback] SUCCESS: Determined postLogoutRedirectUri as absolute path: '${postLogoutRedirectUri}' using segment: '${firstSignificantPathSegment}'`);
-            } else {
-                // This block means the bucket name could not be reliably extracted from the pathname.
-                // This is highly problematic if the host is storage.googleapis.com, as a bucket name is expected in the path.
-                postLogoutRedirectUri = 'login.html'; // Fallback to relative path
-                console.warn(`[Logout Fallback] FAILURE: Could not determine bucket base path from pathname: '${window.location.pathname}'. Defaulting to relative path: '${postLogoutRedirectUri}'. This may lead to incorrect redirection if current URL has no trailing slash.`);
-                // The alert below will also indicate a problem.
-            }
-            // --- End Enhanced Debug Logging ---
-
-            const profilePictureUrl = localStorage.getItem('google_profile_picture_url');
-            const userRole = localStorage.getItem('user_role');
-
-            // --- DOM Elements for User Info/Logout ---
-            const logoutButton = document.getElementById('logoutButton');
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const appRoot = document.getElementById('app-root');
+            const userRoleDisplay = document.getElementById('userRoleDisplay');
             const profilePicImg = document.getElementById('profilePic');
             const profilePicPlaceholder = document.getElementById('profilePicPlaceholder');
-            const userRoleDisplay = document.getElementById('userRoleDisplay');
+            const logoutButton = document.getElementById('logoutButton');
 
-            // --- Load User Role ---
-            function loadUserRole() {
-                const validRoles = ["Reader", "Contributor", "Administrator"]; // Define your valid roles
-                if (userRole && userRoleDisplay && validRoles.includes(userRole)) {
-                    userRoleDisplay.textContent = userRole;
-                    userRoleDisplay.style.display = 'inline-block';
-                } else {
-                    if (userRoleDisplay) userRoleDisplay.style.display = 'none';
-                    if (userRole) console.warn('User role found in localStorage ("' + userRole + '") but it is not a recognized role or display element is missing.');
-                    else console.info('User role not found in localStorage. Role display will be hidden.');
-                }
-            }
+            // Initial UI state
+            loadingIndicator.style.display = 'block';
+            appRoot.style.display = 'none';
+            userRoleDisplay.style.display = 'none';
+            profilePicImg.style.display = 'none';
+            profilePicPlaceholder.style.display = 'flex'; // Show placeholder initially
+            logoutButton.style.display = 'none';
 
-            // --- Load Profile Picture ---
-            function loadProfilePicture() {
-                console.log('Attempting to load profile picture. URL from localStorage:', profilePictureUrl);
 
-                if (profilePicImg) { // Check if the main image element exists
-                    if (profilePictureUrl) { // If image element exists and URL is available
-                        profilePicImg.src = profilePictureUrl;
-                        profilePicImg.style.display = 'block';
+            const showError = (message) => {
+                console.error(message);
+                // Potentially display error to user in a more friendly way
+                loadingIndicator.textContent = message; // For example
+            };
 
-                        // Add an error handler for the image
-                        profilePicImg.onerror = () => {
-                            console.error(`Failed to load profile picture from URL: ${profilePictureUrl}. Displaying placeholder.`);
-                            profilePicImg.style.display = 'none';
-                            if (profilePicPlaceholder) {
-                                profilePicPlaceholder.style.display = 'flex';
-                            }
-                            // Optional: Clear the bad URL from localStorage to prevent repeated failed attempts on next loads
-                            // localStorage.removeItem('google_profile_picture_url');
-                        };
-                        profilePicImg.onload = () => {
-                            console.log('Profile picture loaded successfully.');
-                        };
+            const redirectToLogin = () => {
+                // Ensure FRONTEND_REDIRECT_BASE_URL ends with a slash and LOGIN_HTML_PATH doesn't start with one.
+                const base = FRONTEND_REDIRECT_BASE_URL.endsWith('/') ? FRONTEND_REDIRECT_BASE_URL : FRONTEND_REDIRECT_BASE_URL + '/';
+                const path = LOGIN_HTML_PATH.startsWith('/') ? LOGIN_HTML_PATH.substring(1) : LOGIN_HTML_PATH;
+                window.location.href = base + path;
+            };
 
-                        if (profilePicPlaceholder) {
-                            profilePicPlaceholder.style.display = 'none';
-                        }
-                    } else { // If image element exists but URL is not available
-                        console.info('Google profile picture URL not found or is empty in localStorage. Displaying placeholder.');
-                        profilePicImg.style.display = 'none';
-                        if (profilePicPlaceholder) {
-                            profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
-                        } else {
-                            // If no placeholder, profilePicImg is already set to display:none.
-                            console.warn('Profile picture placeholder not found, and no profile URL. User avatar will not be shown.');
-                        }
+            try {
+                // Ensure BACKEND_URL doesn't have a trailing slash
+                const cleanBackendUrl = BACKEND_URL.replace(/\/$/, '');
+                const authStatusUrl = `${cleanBackendUrl}/api/v1/auth/status`;
+
+                const response = await fetch(authStatusUrl, {
+                    method: 'GET',
+                    credentials: 'include', // Send cookies
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     }
-                } else { // Main profile picture <img> element is missing
-                    console.warn('Profile picture <img> (id="profilePic") not found. Cannot display actual profile picture.');
-                    if (profilePicPlaceholder) {
-                        console.info('Attempting to display placeholder instead.');
-                        profilePicPlaceholder.style.display = 'flex'; // Use flex to center SVG
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        console.log('Authentication failed, redirecting to login.');
+                        redirectToLogin();
                     } else {
-                        console.warn('Profile picture placeholder <div> (id="profilePicPlaceholder") also not found. No user avatar will be displayed.');
+                        const errorText = await response.text();
+                        showError(`Error fetching auth status: ${response.status} ${errorText}`);
                     }
+                    return;
                 }
-            }
-            // --- Logout Function ---
-            function handleLogout() {
-                console.log('Logout process initiated...');
 
-                // 1. Clear local session data (tokens, user info, etc.)
-                localStorage.removeItem('id_token');
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('user_info'); // Example: if you store general user info
-                localStorage.removeItem('google_profile_picture_url');
-                localStorage.removeItem('user_role');
-                // Add any other items you store in localStorage for the session
-                console.log('Local session data cleared.');
+                const userData = await response.json();
 
-                // 2. Redirect to the application's backend logout endpoint.
-                // The backend will clear its session and then redirect to login.html.
-                // The 'backendUrl' variable should be defined globally (replaced by CI/CD).
-                if (typeof backendUrl !== 'undefined' && backendUrl && backendUrl !== '__BACKEND_URL__') {
-                    // Ensure backendUrl doesn't have a trailing slash before appending /logout
-                    const cleanBackendUrl = backendUrl.replace(/\/$/, '');
-                    const appLogoutUrl = `${cleanBackendUrl}/logout`;
-                    console.log('Redirecting to application logout URL:', appLogoutUrl);
-                    window.location.href = appLogoutUrl;
+                // Populate app content from template
+                const appTemplate = document.getElementById('app-template');
+                if (appTemplate) {
+                    const appContent = appTemplate.content.cloneNode(true);
+                    appRoot.appendChild(appContent);
                 } else {
-                    console.error('Backend URL is not configured. Cannot perform application logout. Current backendUrl:', backendUrl);
-                    // Fallback: If backend URL isn't set, just redirect to login page after clearing local storage.
-                    // This won't clear the server-side session but is better than doing nothing.
-                    alert('Logout partially completed. Please close your browser to ensure full logout. Backend configuration issue detected (or unable to determine redirect path).');
-                    console.log('[Logout Fallback] Redirecting to:', postLogoutRedirectUri);
-                    window.location.href = postLogoutRedirectUri; // Redirect to login.html
+                    showError('Error: Application template not found.');
+                    return;
                 }
-            }
 
-            // --- Event Listener for Logout Button ---
-            if (logoutButton) {
-                logoutButton.addEventListener('click', handleLogout);
-            } else {
-                console.error('Logout button (logoutButton) not found.');
-            }
+                // Update UI with user data
+                if (userData.user_role) {
+                    userRoleDisplay.textContent = userData.user_role;
+                    userRoleDisplay.style.display = 'inline-block';
+                }
+                if (userData.profile_picture_url) {
+                    profilePicImg.src = userData.profile_picture_url;
+                    profilePicImg.style.display = 'block';
+                    profilePicPlaceholder.style.display = 'none';
+                    profilePicImg.onerror = () => {
+                        profilePicImg.style.display = 'none';
+                        profilePicPlaceholder.style.display = 'flex';
+                    };
+                } else {
+                    profilePicImg.style.display = 'none';
+                    profilePicPlaceholder.style.display = 'flex';
+                }
 
-            // --- Initial Load of User Info ---
-            loadUserRole();
-            loadProfilePicture();
+                // Show app and user elements, hide loading
+                loadingIndicator.style.display = 'none';
+                appRoot.style.display = 'block';
+                logoutButton.style.display = 'block';
+
+
+                // Attach event listeners for query form and logout button
+                const queryForm = document.getElementById('query-form');
+                if (queryForm) {
+                    queryForm.addEventListener('submit', async function(event) {
+                        event.preventDefault();
+                        const query = document.getElementById('query-input').value;
+                        const responseArea = document.getElementById('response-area');
+                        const geminiResponseElement = document.getElementById('gemini-response');
+
+                        responseArea.style.display = 'block';
+                        geminiResponseElement.textContent = 'Thinking...';
+
+                        if (!query.trim()) {
+                           geminiResponseElement.textContent = 'Please enter a question.';
+                           return;
+                        }
+
+                       const formData = new FormData();
+                       formData.append('question', query);
+
+                       try {
+                            const queryResponse = await fetch(cleanBackendUrl + '/api/v1/query', { // Assuming /api/v1/query for queries
+                                method: 'POST',
+                                body: formData,
+                                credentials: 'include'
+                            });
+
+                            if (!queryResponse.ok) {
+                                const errorText = await queryResponse.text();
+                                throw new Error(`HTTP error! status: ${queryResponse.status} - ${errorText}`);
+                            }
+
+                            const data = await queryResponse.json();
+                            let answer = data.answer ? data.answer.replace(/\*/g, '') : 'No answer received from Archie.';
+                            geminiResponseElement.textContent = answer;
+                            // Apply existing styling for response
+                            geminiResponseElement.style.borderRadius = '10px';
+                            geminiResponseElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                            geminiResponseElement.style.padding = '10px';
+                            geminiResponseElement.style.whiteSpace = 'pre-wrap';
+                            const queryInputElement = document.getElementById('query-input');
+                            const queryInputComputedStyle = window.getComputedStyle(queryInputElement);
+                            geminiResponseElement.style.fontFamily = queryInputComputedStyle.fontFamily;
+                            geminiResponseElement.style.fontSize = queryInputComputedStyle.fontSize;
+                            geminiResponseElement.style.lineHeight = queryInputComputedStyle.lineHeight;
+
+                        } catch (error) {
+                            console.error('Error querying Archie:', error);
+                            geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
+                        }
+                    });
+                } else {
+                    showError("Error: Query form not found after loading template.");
+                }
+
+                if (logoutButton) {
+                    logoutButton.addEventListener('click', async () => {
+                        try {
+                            const logoutUrl = `${cleanBackendUrl}/api/v1/auth/logout`;
+                            const logoutResponse = await fetch(logoutUrl, {
+                                method: 'POST', // Or GET, depending on your backend implementation
+                                credentials: 'include'
+                            });
+                            if (logoutResponse.ok) {
+                                redirectToLogin();
+                            } else {
+                                showError('Logout failed. Please try again or close your browser.');
+                                console.error('Logout failed:', logoutResponse.status, await logoutResponse.text());
+                                // Fallback, still try to redirect
+                                redirectToLogin();
+                            }
+                        } catch (error) {
+                            showError('Error during logout. Redirecting to login page.');
+                            console.error('Error during logout:', error);
+                            redirectToLogin();
+                        }
+                    });
+                } else {
+                     showError("Error: Logout button not found.");
+                }
+
+            } catch (error) {
+                showError(`Initialization error: ${error.message}. Please try refreshing the page.`);
+                // Optionally, redirect to login for any other critical errors during init
+                // redirectToLogin();
+            }
         });
     </script>
+
+    <template id="app-template">
+        <main class="main-container container-grid" role="main" id="main">
+            <div class="container pt-5 pb-5"> <h1>Ask Archie</h1>
+                <p class="lead">Enter your query below to get a response from Archie</p>
+                <form id="query-form" class="mt-4">
+                    <div class="form-group">
+                        <textarea class="form-control" id="query-input" name="query" rows="3" placeholder="Ask any question here..." style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></textarea>
+                    </div>
+                    <button type="submit" class="logout-button mt-3">Send Query</button>
+                </form>
+
+                <div id="response-area" class="mt-5" style="display:none;">
+                    <h2>Response</h2>
+                    <pre><code id="gemini-response"></code></pre>
+                </div>
+            </div>
+        </main>
+    </template>
 
 </body>
 </html>

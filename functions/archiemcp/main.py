@@ -133,7 +133,7 @@ INDEX_HTML_PATH = "/index.html" # Relative path on the frontend
 LOGIN_HTML_PATH = "/login.html" # Relative path on the frontend
 
 
-@app.route('/', methods=['POST', 'OPTIONS'])
+@app.route('/api/v1/query', methods=['POST', 'OPTIONS']) # Route changed
 def archiemcp():  # Removed 'request' parameter - Flask provides it automatically
     """
     HTTP Cloud Function to proxy requests to the Gemini API.
@@ -333,71 +333,70 @@ def auth_google_callback():
         logging.error(f"Unexpected error after fetching token: {e}", exc_info=True)
         return "An unexpected error occurred during login. Please try again.", 500
 
-@app.route('/logout')
+@app.route('/api/v1/auth/logout', methods=['POST', 'OPTIONS']) # Route and methods updated
 def logout():
-    """Clears the user session and redirects to the login page."""
+    """Clears the user session and returns a JSON success message. Handles CORS."""
+    response_headers = {
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Content-Type': 'application/json',
+        'Access-Control-Max-Age': '3600'
+    }
+    if FRONTEND_CORS_ORIGIN:
+        response_headers['Access-Control-Allow-Origin'] = FRONTEND_CORS_ORIGIN
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
+    else:
+        response_headers['Access-Control-Allow-Origin'] = '*'
+        # Note: 'Access-Control-Allow-Credentials' cannot be 'true' with wildcard origin.
+
+    if request.method == 'OPTIONS':
+        # For OPTIONS, just return headers and 204 No Content
+        return ('', 204, response_headers)
+
+    # For POST requests
     user_email = session.get('email', 'Unknown user')
     session.clear()
-    logging.info(f"User '{user_email}' logged out.")
-
-    if FRONTEND_REDIRECT_BASE_URL:
-        target_url = f"{FRONTEND_REDIRECT_BASE_URL}{LOGIN_HTML_PATH}"
-        logging.info(f"Redirecting logged out user to: {target_url}")
-        return redirect(target_url)
-    else:
-        logging.warning("FRONTEND_REDIRECT_BASE_URL not set. Cannot redirect to frontend login.html. "
-                        "Redirecting to backend login initiation as fallback.")
-        # Fallback: redirect to the backend's own login initiation route
-        return redirect(url_for('login_google'))
+    logging.info(f"User '{user_email}' logged out via API.")
+    # The frontend will handle the redirect to login.html based on this success response.
+    return jsonify({"message": "Logout successful"}), 200, response_headers
 
 @app.route('/api/v1/auth/status', methods=['GET', 'OPTIONS'])
 def auth_status():
     """
     Checks the current authentication status of the user based on the Flask session.
-    Handles CORS and returns user information if authenticated, or a redirect URL if not.
+    Handles CORS and returns user information if authenticated, or an error if not.
     """
     response_headers = {
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization', # Allow Authorization for potential future use
-        'Content-Type': 'application/json'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Content-Type': 'application/json',
+        'Access-Control-Max-Age': '3600' # Added Max-Age
     }
 
-    # Handle CORS preflight and origin
     if FRONTEND_CORS_ORIGIN:
         response_headers['Access-Control-Allow-Origin'] = FRONTEND_CORS_ORIGIN
-        response_headers['Access-Control-Allow-Credentials'] = 'true' # Crucial for session cookies
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
     else:
-        # Fallback for local development or when FRONTEND_CORS_ORIGIN is not set
         response_headers['Access-Control-Allow-Origin'] = '*'
         # Note: 'Access-Control-Allow-Credentials' cannot be 'true' with wildcard origin.
-        # This might affect cross-origin session cookie behavior if FRONTEND_CORS_ORIGIN is not properly set in deployed environments.
-        logging.warning("FRONTEND_CORS_ORIGIN not set. Using wildcard '*' for Access-Control-Allow-Origin. "
-                        "Cross-origin credentialed requests might be blocked by browsers if not configured correctly.")
+        logging.warning("FRONTEND_CORS_ORIGIN not set for auth_status. Using wildcard '*' for Access-Control-Allow-Origin. "
+                        "Cross-origin credentialed requests might be blocked by browsers.")
 
     if request.method == 'OPTIONS':
         return ('', 204, response_headers)
 
+    # For GET requests
     if 'email' in session:
         user_info = {
             "email": session.get('email'),
             "name": session.get('name'),
             "picture": session.get('picture')
-            # Add any other user-specific info the frontend might need immediately
+            # Potentially add "user_role": session.get('user_role') if role is stored in session
         }
-        return (json.dumps({"authenticated": True, "user": user_info}), 200, response_headers)
+        return jsonify({"authenticated": True, "user": user_info}), 200, response_headers
     else:
-        frontend_login_url = None
-        if FRONTEND_REDIRECT_BASE_URL and LOGIN_HTML_PATH:
-            frontend_login_url = f"{FRONTEND_REDIRECT_BASE_URL.rstrip('/')}{LOGIN_HTML_PATH}"
-        else:
-            logging.warning("FRONTEND_REDIRECT_BASE_URL or LOGIN_HTML_PATH not set. Cannot construct full frontend login URL.")
-            # As a last resort, you might point to the backend's login initiation, but frontend redirect is preferred.
-            # frontend_login_url = url_for('auth_google_initiate', _external=True)
-
-        return (json.dumps({
-            "authenticated": False,
-            "redirectTo": frontend_login_url
-        }), 401, response_headers)
+        # Return error as per requirement, not redirect information
+        return jsonify({"authenticated": False, "error": "No active session"}), 401, response_headers
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
