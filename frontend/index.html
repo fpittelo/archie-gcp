@@ -40,6 +40,16 @@
     <link rel="stylesheet" href="css/app.css">
 
     <style>
+        html {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Use min-height for flexibility */
+            margin: 0; /* Reset default body margin */
+        }
+
         .header-light { /* Style existing header for flex layout */
             display: flex;
             justify-content: space-between;
@@ -142,6 +152,10 @@
 
         .hidden-footer {
             display: none;
+        }
+        /* Ensure the main content area grows to push the footer down */
+        #app-root {
+            flex-grow: 1;
         }
     </style>
 </head>
