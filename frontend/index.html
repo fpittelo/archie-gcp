@@ -91,7 +91,7 @@
             width: 24px; /* Adjust icon size if needed */
             height: 24px;
         }
-        .logout-button {
+        .btn-submit {
             background-color: #ef4444; /* red-500 */
             color: white;
             font-weight: 500;
@@ -104,8 +104,13 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             white-space: nowrap;
         }
-        .logout-button:hover {
+        .btn-submit:hover {
             background-color: #dc2626; /* red-600 */
+        }
+
+        /* Utility class to hide elements */
+        .hidden {
+            display: none !important;
         }
 
         /* --- Attempt to hide privacy pop-ups/cookie banners --- */
@@ -134,6 +139,10 @@
             content: "" !important; /* Ensure no content is rendered by them */
             border: none !important; /* Just in case they use borders */
         }
+
+        .hidden-footer {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -150,11 +159,11 @@
             <div id="profilePicPlaceholder" class="profile-picture-placeholder" style="display: none;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
-            <button id="logoutButton" class="logout-button">Logout</button>
+    <footer class="footer footer-light pt-2 pb-2 bg-gray-100 hidden">
         </div>
     </header>
 
-    <footer class="footer footer-light pt-2 pb-2 bg-gray-100" style="display: none;">
+    <footer class="footer footer-light pt-2 pb-2 bg-gray-100 hidden-footer">
         <div class="container-grid">
             <div class="footer-legal">
                 <div>
@@ -220,7 +229,14 @@
             const userRoleDisplay = document.getElementById('userRoleDisplay');
             const profilePicImg = document.getElementById('profilePic');
             const profilePicPlaceholder = document.getElementById('profilePicPlaceholder');
-            if (userRoleDisplay) userRoleDisplay.style.display = 'none'; // Hide if no role info from backend
+            if (userRoleDisplay) {
+                if (userData.user && userData.user.role) {
+                    userRoleDisplay.textContent = userData.user.role;
+                    userRoleDisplay.style.display = 'block';
+                } else {
+                    userRoleDisplay.style.display = 'none'; // Hide if no role info from backend
+                }
+            }
 
             if (userData.user && userData.user.picture) {
                 if (profilePicImg) { profilePicImg.src = userData.user.picture; profilePicImg.style.display = 'block';}
@@ -334,7 +350,7 @@
                     <div class="form-group">
                         <textarea class="form-control" id="query-input" name="query" rows="3" placeholder="Ask any question here..." style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></textarea>
                     </div>
-                    <button type="submit" class="logout-button mt-3">Send Query</button>
+                    <button type="submit" class="btn-submit mt-3">Send Query</button>
                 </form>
 
                 <div id="response-area" class="mt-5" style="display:none;">
