@@ -137,10 +137,10 @@
     </style>
 </head>
 <body>
-    <div id="initial-loader">Loading...</div>
-    <div id="app-root" style="display: none;"></div>
+    <p id="loading-indicator">Loading application...</p>
+    <div id="app-root"></div>
 
-    <header class="header header-light" style="display: none;">
+    <header class="header header-light">
         <a class="logo" href="https://www.epfl.ch/en/">
 		<img src="https://www.epfl.ch/wp-content/themes/wp-theme-2018/assets/svg/epfl-logo.svg" alt="Logo EPFL, École polytechnique fédérale de Lausanne" class="img-fluid">
 	</a>
@@ -154,7 +154,7 @@
         </div>
     </header>
 
-    <footer class="footer footer-light pt-2 pb-2 bg-gray-100" style="display: none;">
+    <footer class="footer footer-light pt-2 pb-2 bg-gray-100">
         <div class="container-grid">
             <div class="footer-legal">
                 <div>
@@ -172,157 +172,183 @@
     <script src="js/vendors.min.js"></script>
     <script src="js/elements.min.js"></script>
     <script>
-        // Define showError at a higher scope
-        const globalShowError = (message) => {
-            console.error(message);
-            const loader = document.getElementById('initial-loader');
-            if (loader && loader.style.display !== 'none') { // Only update loader if it's visible
-                 loader.textContent = message;
-            }
-            // Optionally, create a dedicated error message div in the HTML
-            // and update it here instead of overwriting the loader.
-        };
-
-        const LOGIN_HTML_PATH_CONST = LOGIN_HTML_PATH.startsWith('/') ? LOGIN_HTML_PATH.substring(1) : LOGIN_HTML_PATH;
-        function redirectToLogin() {
-            // Check if already on login page to prevent loops
-            if (window.location.pathname.endsWith(LOGIN_HTML_PATH_CONST) || window.location.pathname.includes(LOGIN_HTML_PATH_CONST.replace('.html', ''))) {
-                 console.warn('Already on login page or processing redirect, aborting further redirection.');
-                 // Display a message or hide loader if stuck
-                 const loader = document.getElementById('initial-loader');
-                 if(loader) loader.innerHTML = 'Redirecting to login... If you are not redirected, please click here: <a href="' + (FRONTEND_REDIRECT_BASE_URL.endsWith('/') ? FRONTEND_REDIRECT_BASE_URL : FRONTEND_REDIRECT_BASE_URL + '/') + LOGIN_HTML_PATH_CONST + '">Login</a>';
-                 return;
-            }
-            const base = FRONTEND_REDIRECT_BASE_URL.endsWith('/') ? FRONTEND_REDIRECT_BASE_URL : FRONTEND_REDIRECT_BASE_URL + '/';
-            const path = LOGIN_HTML_PATH_CONST;
-            console.log('Redirecting to:', base + path);
-            window.location.href = base + path;
-        }
-
-        // Adjusted initializeAppUI
-        function initializeAppUI(userData) {
-            document.getElementById('app-root').style.display = 'block';
-            const header = document.querySelector('.header.header-light');
-            if (header) header.style.display = 'flex';
-            const footer = document.querySelector('.footer.footer-light');
-            if (footer) footer.style.display = 'block';
-
-            const appTemplate = document.getElementById('app-template');
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingIndicator = document.getElementById('loading-indicator');
             const appRoot = document.getElementById('app-root');
-            if (appTemplate && appRoot) {
-                const appContent = appTemplate.content.cloneNode(true);
-                appRoot.appendChild(appContent);
-            } else {
-                globalShowError('Error: Application template or root not found.');
-                return;
-            }
-
             const userRoleDisplay = document.getElementById('userRoleDisplay');
             const profilePicImg = document.getElementById('profilePic');
             const profilePicPlaceholder = document.getElementById('profilePicPlaceholder');
-            if (userRoleDisplay) userRoleDisplay.style.display = 'none'; // Hide if no role info from backend
-
-            if (userData.user && userData.user.picture) {
-                if (profilePicImg) { profilePicImg.src = userData.user.picture; profilePicImg.style.display = 'block';}
-                if (profilePicPlaceholder) profilePicPlaceholder.style.display = 'none';
-                if (profilePicImg) {
-                    profilePicImg.onerror = () => {
-                        profilePicImg.style.display = 'none';
-                        if (profilePicPlaceholder) profilePicPlaceholder.style.display = 'flex';
-                    };
-                }
-            } else {
-                if (profilePicImg) profilePicImg.style.display = 'none';
-                if (profilePicPlaceholder) profilePicPlaceholder.style.display = 'flex';
-            }
-            if (userData.user && userData.user.name) { console.log("User name:", userData.user.name); }
-
             const logoutButton = document.getElementById('logoutButton');
-            if (logoutButton) logoutButton.style.display = 'block';
 
-            const queryForm = document.getElementById('query-form');
-            if (queryForm) {
-                queryForm.addEventListener('submit', async function(event) {
-                    event.preventDefault();
-                    const query = document.getElementById('query-input').value;
-                    const responseArea = document.getElementById('response-area');
-                    const geminiResponseElement = document.getElementById('gemini-response');
-                    responseArea.style.display = 'block';
-                    geminiResponseElement.textContent = 'Thinking...';
-                    if (!query.trim()) { geminiResponseElement.textContent = 'Please enter a question.'; return; }
-                    const formData = new FormData();
-                    formData.append('question', query);
-                    const cleanBackendUrl = BACKEND_URL.replace(/\/$/, '');
-                    try {
-                        const queryResponse = await fetch(cleanBackendUrl + '/api/v1/query', { method: 'POST', body: formData, credentials: 'include' });
-                        if (!queryResponse.ok) { const errorText = await queryResponse.text(); throw new Error(`HTTP error! status: ${queryResponse.status} - ${errorText}`); }
-                        const data = await queryResponse.json();
-                        let answer = data.answer ? data.answer.replace(/\*/g, '') : 'No answer received from Archie.';
-                        geminiResponseElement.textContent = answer;
-                        geminiResponseElement.style.borderRadius = '10px';
-                        geminiResponseElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                        geminiResponseElement.style.padding = '10px';
-                        geminiResponseElement.style.whiteSpace = 'pre-wrap';
-                        const queryInputElement = document.getElementById('query-input');
-                        const queryInputComputedStyle = window.getComputedStyle(queryInputElement);
-                        geminiResponseElement.style.fontFamily = queryInputComputedStyle.fontFamily;
-                        geminiResponseElement.style.fontSize = queryInputComputedStyle.fontSize;
-                        geminiResponseElement.style.lineHeight = queryInputComputedStyle.lineHeight;
-                    } catch (error) { console.error('Error querying Archie:', error); geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`; }
-                });
-            } else { globalShowError("Error: Query form not found after loading template."); }
+            // Initial UI state
+            loadingIndicator.style.display = 'block';
+            appRoot.style.display = 'none';
+            userRoleDisplay.style.display = 'none';
+            profilePicImg.style.display = 'none';
+            profilePicPlaceholder.style.display = 'flex'; // Show placeholder initially
+            logoutButton.style.display = 'none';
 
-            if (logoutButton) {
-                logoutButton.addEventListener('click', async () => {
-                    const cleanBackendUrl = BACKEND_URL.replace(/\/$/, '');
-                    try {
-                        const logoutUrl = `${cleanBackendUrl}/api/v1/auth/logout`;
-                        const logoutResponse = await fetch(logoutUrl, { method: 'POST', credentials: 'include' });
-                        if (logoutResponse.ok) { redirectToLogin(); }
-                        else { globalShowError('Logout failed. Please try again or close your browser.'); console.error('Logout failed:', logoutResponse.status, await logoutResponse.text()); redirectToLogin(); }
-                    } catch (error) { globalShowError('Error during logout. Redirecting to login page.'); console.error('Error during logout:', error); redirectToLogin(); }
-                });
-            } else { globalShowError("Error: Logout button not found."); }
-        }
 
-        // Adjusted verifyUserSessionAndLoadApp
-        async function verifyUserSessionAndLoadApp() {
-            const loadingIndicator = document.getElementById('initial-loader');
+            const showError = (message) => {
+                console.error(message);
+                // Potentially display error to user in a more friendly way
+                loadingIndicator.textContent = message; // For example
+            };
+
+            const redirectToLogin = () => {
+                // Ensure FRONTEND_REDIRECT_BASE_URL ends with a slash and LOGIN_HTML_PATH doesn't start with one.
+                const base = FRONTEND_REDIRECT_BASE_URL.endsWith('/') ? FRONTEND_REDIRECT_BASE_URL : FRONTEND_REDIRECT_BASE_URL + '/';
+                const path = LOGIN_HTML_PATH.startsWith('/') ? LOGIN_HTML_PATH.substring(1) : LOGIN_HTML_PATH;
+                window.location.href = base + path;
+            };
+
             try {
+                // Ensure BACKEND_URL doesn't have a trailing slash
                 const cleanBackendUrl = BACKEND_URL.replace(/\/$/, '');
                 const authStatusUrl = `${cleanBackendUrl}/api/v1/auth/status`;
-                const response = await fetch(authStatusUrl, { method: 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }});
+
+                const response = await fetch(authStatusUrl, {
+                    method: 'GET',
+                    credentials: 'include', // Send cookies
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
                 if (!response.ok) {
                     if (response.status === 401 || response.status === 403) {
-                        console.log('Authentication required or failed, redirecting to login.');
-                        if (loadingIndicator) loadingIndicator.style.display = 'none';
+                        console.log('Authentication failed, redirecting to login.');
                         redirectToLogin();
                     } else {
                         const errorText = await response.text();
-                        globalShowError(`Error fetching auth status: ${response.status} ${errorText}`);
+                        showError(`Error fetching auth status: ${response.status} ${errorText}`);
                     }
                     return;
                 }
-                const userData = await response.json();
-                if (userData.authenticated === true) {
-                    if (loadingIndicator) loadingIndicator.style.display = 'none';
-                    initializeAppUI(userData);
-                } else {
-                    console.log('Not authenticated, redirecting to login.');
-                    if (loadingIndicator) loadingIndicator.style.display = 'none';
-                    redirectToLogin();
-                }
-            } catch (error) {
-                globalShowError(`Initialization error: ${error.message}. Please try refreshing the page or login again.`);
-                if (loadingIndicator) loadingIndicator.style.display = 'none';
-            }
-        }
 
-        // Original DOMContentLoaded, now simplified
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initial UI state (loader visible, app hidden) is now set by HTML structure + CSS in step 2.
-            // Call the main function to start the auth check and app loading process.
-            verifyUserSessionAndLoadApp();
+                const userData = await response.json();
+
+                // Populate app content from template
+                const appTemplate = document.getElementById('app-template');
+                if (appTemplate) {
+                    const appContent = appTemplate.content.cloneNode(true);
+                    appRoot.appendChild(appContent);
+                } else {
+                    showError('Error: Application template not found.');
+                    return;
+                }
+
+                // Update UI with user data
+                if (userData.user_role) {
+                    userRoleDisplay.textContent = userData.user_role;
+                    userRoleDisplay.style.display = 'inline-block';
+                }
+                if (userData.profile_picture_url) {
+                    profilePicImg.src = userData.profile_picture_url;
+                    profilePicImg.style.display = 'block';
+                    profilePicPlaceholder.style.display = 'none';
+                    profilePicImg.onerror = () => {
+                        profilePicImg.style.display = 'none';
+                        profilePicPlaceholder.style.display = 'flex';
+                    };
+                } else {
+                    profilePicImg.style.display = 'none';
+                    profilePicPlaceholder.style.display = 'flex';
+                }
+
+                // Show app and user elements, hide loading
+                loadingIndicator.style.display = 'none';
+                appRoot.style.display = 'block';
+                logoutButton.style.display = 'block';
+
+
+                // Attach event listeners for query form and logout button
+                const queryForm = document.getElementById('query-form');
+                if (queryForm) {
+                    queryForm.addEventListener('submit', async function(event) {
+                        event.preventDefault();
+                        const query = document.getElementById('query-input').value;
+                        const responseArea = document.getElementById('response-area');
+                        const geminiResponseElement = document.getElementById('gemini-response');
+
+                        responseArea.style.display = 'block';
+                        geminiResponseElement.textContent = 'Thinking...';
+
+                        if (!query.trim()) {
+                           geminiResponseElement.textContent = 'Please enter a question.';
+                           return;
+                        }
+
+                       const formData = new FormData();
+                       formData.append('question', query);
+
+                       try {
+                            const queryResponse = await fetch(cleanBackendUrl + '/api/v1/query', { // Assuming /api/v1/query for queries
+                                method: 'POST',
+                                body: formData,
+                                credentials: 'include'
+                            });
+
+                            if (!queryResponse.ok) {
+                                const errorText = await queryResponse.text();
+                                throw new Error(`HTTP error! status: ${queryResponse.status} - ${errorText}`);
+                            }
+
+                            const data = await queryResponse.json();
+                            let answer = data.answer ? data.answer.replace(/\*/g, '') : 'No answer received from Archie.';
+                            geminiResponseElement.textContent = answer;
+                            // Apply existing styling for response
+                            geminiResponseElement.style.borderRadius = '10px';
+                            geminiResponseElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                            geminiResponseElement.style.padding = '10px';
+                            geminiResponseElement.style.whiteSpace = 'pre-wrap';
+                            const queryInputElement = document.getElementById('query-input');
+                            const queryInputComputedStyle = window.getComputedStyle(queryInputElement);
+                            geminiResponseElement.style.fontFamily = queryInputComputedStyle.fontFamily;
+                            geminiResponseElement.style.fontSize = queryInputComputedStyle.fontSize;
+                            geminiResponseElement.style.lineHeight = queryInputComputedStyle.lineHeight;
+
+                        } catch (error) {
+                            console.error('Error querying Archie:', error);
+                            geminiResponseElement.textContent = `Failed to get an answer. Error: ${error.message}`;
+                        }
+                    });
+                } else {
+                    showError("Error: Query form not found after loading template.");
+                }
+
+                if (logoutButton) {
+                    logoutButton.addEventListener('click', async () => {
+                        try {
+                            const logoutUrl = `${cleanBackendUrl}/api/v1/auth/logout`;
+                            const logoutResponse = await fetch(logoutUrl, {
+                                method: 'POST', // Or GET, depending on your backend implementation
+                                credentials: 'include'
+                            });
+                            if (logoutResponse.ok) {
+                                redirectToLogin();
+                            } else {
+                                showError('Logout failed. Please try again or close your browser.');
+                                console.error('Logout failed:', logoutResponse.status, await logoutResponse.text());
+                                // Fallback, still try to redirect
+                                redirectToLogin();
+                            }
+                        } catch (error) {
+                            showError('Error during logout. Redirecting to login page.');
+                            console.error('Error during logout:', error);
+                            redirectToLogin();
+                        }
+                    });
+                } else {
+                     showError("Error: Logout button not found.");
+                }
+
+            } catch (error) {
+                showError(`Initialization error: ${error.message}. Please try refreshing the page.`);
+                // Optionally, redirect to login for any other critical errors during init
+                // redirectToLogin();
+            }
         });
     </script>
 
